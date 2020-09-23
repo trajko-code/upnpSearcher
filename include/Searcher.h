@@ -1,5 +1,5 @@
 #include <string>
-#include <list>
+// #include <vector>
 #include <iostream>
 #include <MySocket.h>
 #include "STB.h"
@@ -8,16 +8,17 @@ class Searcher
 {
     private:
         std::string friendlyName;
-        std::string uuid;
-        std::list<STB> discoveredSTB;
+        std::vector<STB> discoveredSTB;
  
     public:
-        Searcher(std::string fName, std::string uuid);
+        Searcher(std::string fName);
 
-        void SearchBcast(const std::string delay, int searchTime);
-        void SearchBcast(const std::string delay, const std::string target, int searchTime);
+        uint16_t SearchBcast(const std::string delay, int searchTime);
+        uint16_t SearchBcast(const std::string delay, const std::string target, int searchTime);
         void SearchUnicast(std::string hostname, int port, std::string target);
         void SearchUnicast(uint32_t address, int port, std::string target);
+
+        void SearchSTBDescription(std::string stbUuid);
 
     private:
         void FilterResponse(const std::string response);

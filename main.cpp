@@ -2,9 +2,20 @@
 
 int main()
 {
-    Searcher cp("ContPt", "123");
+    Searcher cp("friendlyName");
 
-    cp.SearchBcast(std::to_string(2), 10);
+    if(cp.SearchBcast(std::to_string(2), 10) > 0)
+    {
+        std::string uuid;
+        std::cout<<"Insert uuid of device: "<<std::endl;
+        std::cin>>uuid;
 
+        cp.SearchSTBDescription(uuid);
+    }
+    else
+    {
+        std::cout<<"No STB detected."<<std::endl;
+    }
+    
     return 0;
 }

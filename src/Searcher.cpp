@@ -16,6 +16,13 @@ uint16_t Searcher::SearchBcast(const std::string delay, int searchTime)
 
 uint16_t Searcher::SearchBcast(const std::string delay, const std::string target, int searchTime)
 { 
+    std::string msg = "M-SEARCH * HTTP/1.1\r\n"
+                    "HOST: 239.255.255.250:1900\r\n"
+                    "MAN: \"ssdp:discover\"\r\n"
+                    "MX: " + delay + "\r\n"
+                    "ST: " + target + "\r\n"
+                    "\r\n";
+
     MySocket sock(AF_INET, SOCK_DGRAM, 1900);
     if(!sock.CreateSocket())
         return 0;
@@ -31,8 +38,11 @@ uint16_t Searcher::SearchBcast(const std::string delay, const std::string target
     if(!sock.SetSockOption(IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&group, sizeof(group)))
         return 0;
 
-    char recvBuf[1024];
+    MySocket toSock(AF_INET, SOCK_DGRAM, 1900, inet_addr("239.255.255.250"));
+    for(int i=0; i<3; i++)
+        sock.SendTo(msg.c_str(), msg.length(), 0, toSock);
 
+    char recvBuf[1024];
     memset(recvBuf, 0, sizeof(recvBuf));
 
     MySocket fromSock;
@@ -48,30 +58,6 @@ uint16_t Searcher::SearchBcast(const std::string delay, const std::string target
     }
 
     return this->discoveredSTB.size();
-}
-
-void Searcher::SearchUnicast(std::string hostname, int port, std::string target)
-{
-    // char msg[] = "M-SEARCH * HTTP/1.1\r\n"
-    //             "HOST: " + hostname + ":" + port + "\r\n"
-    //             "MAN: \"ssdp:discover\"\r\n"
-    //             "ST: " + target + "\r\n"
-    //             "USER-AGENT: Linux/20.04 UPnP/2.0 MyProduct/1.0\r\n"
-    //             "\r\n";
-
-    MySocket sock(AF_INET, SOCK_DGRAM, 1900);
-    if(!sock.CreateSocket())
-        return;
-    // if(!sock.SetSockOption(SO_REUSEADDR, 1))
-    //     return;
-    if(!sock.Bind())
-        return;
-    
-}
-
-void Searcher::SearchUnicast(uint32_t address, int port, std::string target)
-{
-
 }
 
 void Searcher::SearchSTBDescription(std::string stbUuid)
@@ -128,7 +114,7 @@ void Searcher::FilterResponse(const std::string response)
 
     if(nt.empty())
         return;
-    else if(nt.compare("urn:zenterio-net:service:X-CTC_RemotePairing:1") != 0)
+    else if(nt.compare("upnp:rootdevice") != 0)
         return;
     
     std::string nts = GetHeaderValue(response, "NTS");

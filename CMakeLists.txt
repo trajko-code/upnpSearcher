@@ -11,8 +11,8 @@ add_executable(mainUPnP main.cpp ${exe_include} ${exe_source})
 
 target_include_directories(mainUPnP PUBLIC include)
 
-include_directories(/home/syrmia/Desktop/SocketLib/include)
+include_directories(/home/syrmia/Desktop/socketLib/include)
 add_library(MySocket SHARED IMPORTED)
-set_target_properties(MySocket PROPERTIES IMPORTED_LOCATION /home/syrmia/Desktop/SocketLib/build/libMySocket.so)
+set_target_properties(MySocket PROPERTIES IMPORTED_LOCATION /home/syrmia/Desktop/socketLib/build/libMySocket.so)
 
 target_link_libraries(mainUPnP MySocket)

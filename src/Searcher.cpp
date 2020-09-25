@@ -48,11 +48,12 @@ uint16_t Searcher::SearchBcast(const std::string delay, const std::string target
     MySocket fromSock;
     auto start = high_resolution_clock::now(); 
 
-    while (duration_cast<seconds>(high_resolution_clock::now() - start).count() < searchTime)
+    //while (duration_cast<seconds>(high_resolution_clock::now() - start).count() < searchTime)
+    for(int i=0; i<15; i++)
     {
         sock.RecieveFrom(recvBuf, sizeof(recvBuf), 0, fromSock);
 
-        FilterResponse(std::string(recvBuf));
+        FilterDiscoveryResponse(std::string(recvBuf));
 
         //std::cout<<recvBuf<<std::endl;  
     }
@@ -60,48 +61,54 @@ uint16_t Searcher::SearchBcast(const std::string delay, const std::string target
     return this->discoveredSTB.size();
 }
 
-void Searcher::SearchSTBDescription(std::string stbUuid)
+bool Searcher::SearchSTBDescription(STB& stb)
 {
-    auto stb = std::find_if(this->discoveredSTB.begin(), this->discoveredSTB.end(), [&stbUuid](const STB& stb) {return !stb.GetUUID().compare(stbUuid);});
-
-    if(stb != this->discoveredSTB.end())
-    {
-        std::string msg = "GET " + stb->GetXMLLocation() + " HTTP/1.1\r\n"
+    std::string msg = "GET " + stb.GetXMLLocation() + " HTTP/1.1\r\n"
                         "Connection: close\r\n"
-                        "Host: " + stb->GetAddress() + ":" + stb->GetPort() + "\r\n"
-                        //"User-Agent: linux/20.04 UPnP/2.0 myApp/1\r\n"
-                        //"CPFN.UPNP.ORG: " + this->friendlyName + "\r\n"
+                        "Host: " + stb.GetAddress() + ":" + stb.GetPort() + "\r\n"
                         "\r\n";
         
-        MySocket sock(AF_INET, SOCK_STREAM);
-        if(!sock.CreateSocket())
-            return;
-        
-        if(!sock.Connect(AF_INET, std::stoi(stb->GetPort()), inet_addr(stb->GetAddress().c_str())))
-            return;
+    MySocket sock(AF_INET, SOCK_STREAM);
+    if(!sock.CreateSocket())
+        return false;
+    
+    if(!sock.Connect(AF_INET, std::stoi(stb.GetPort()), inet_addr(stb.GetAddress().c_str())))
+        return false;
 
-        sock.Send(msg.c_str(), msg.length(), 0);
+    sock.Send(msg.c_str(), msg.length(), 0);
 
-        std::string response = "";
-        char recvBuf[1024];
-        memset(recvBuf, 0, sizeof(recvBuf));
+    std::string XMLresponse = "";
+    char recvBuf[1024];
+    memset(recvBuf, 0, sizeof(recvBuf));
 
-        while(sock.Recieve(recvBuf, sizeof(recvBuf), 0) != 0)
-        {
-            response += recvBuf;
-            memset(recvBuf, 0, sizeof(recvBuf));
-        }
-
-        std::cout<<"Recived message:"<<std::endl;
-        std::cout<<response<<std::endl;
-    }   
-    else
+    while(sock.Recieve(recvBuf, sizeof(recvBuf), 0) != 0)
     {
-        std::cout<<"Not found"<<std::endl;
+        if(!XMLresponse.empty())
+            XMLresponse.pop_back();
+        XMLresponse += recvBuf;
+        memset(recvBuf, 0, sizeof(recvBuf));
+    }
+    
+    if(!XMLresponse.empty())
+    {
+        FillSTBName(XMLresponse, stb);
+        FillServiceList(XMLresponse, stb);
+
+        return true;
+    }
+    else
+        return false;
+}
+
+void Searcher::ShowDetectedSTBs() const
+{
+    for(auto const& stb : this->discoveredSTB)
+    {
+        std::cout<<stb->GetFriendlyName()<<std::endl;
     }
 }
 
-void Searcher::FilterResponse(const std::string response)
+void Searcher::FilterDiscoveryResponse(const std::string response)
 {
     if(response.find("NOTIFY") == std::string::npos)  // "NOTIFY *"
         return;
@@ -129,23 +136,52 @@ void Searcher::FilterResponse(const std::string response)
         return;
 
     std::string uuid = usn.substr(5, 36);
-    for(auto const &stb : this->discoveredSTB)
-        if(stb.GetUUID().compare(uuid) == 0)
-            return;
-    
     unsigned short addrBegin = location.find('/') + 2;
     unsigned short portBegin = addrBegin + 16;
     unsigned short xmlBegin = location.find('/', portBegin);
     std::string address = location.substr(addrBegin, 15);
     std::string port = location.substr(portBegin, xmlBegin - portBegin);
     std::string xmlLoc = location.substr(xmlBegin, location.length() - xmlBegin);
-    
-    this->discoveredSTB.push_back(STB(uuid, address, port, xmlLoc, nt));
 
-    std::cout<<"New STB detected!"<<std::endl;
-    std::cout<<"UUID: "<<uuid<<std::endl;
-    std::cout<<"Location: "<<location<<std::endl;
-    std::cout<<"NT: "<<nt<<std::endl;
+    for(auto const &stb : this->discoveredSTB)
+        if(stb->GetUUID().compare(uuid) == 0)
+            return;
+
+    std::unique_ptr<STB> newSTB(new STB(uuid, address, port, xmlLoc, nt));
+    
+    if(SearchSTBDescription(*newSTB))
+        this->discoveredSTB.push_back(std::move(newSTB));
+}
+
+void Searcher::FillSTBName(const std::string response, STB& stb)
+{
+    stb.SetFriendlyName(GetTagValue(response, "friendlyName"));
+}
+
+void Searcher::FillServiceList(std::string response, STB& stb)
+{
+    std::string serviceList = GetTagValue(response, "serviceList").substr(1);
+    std::string serviceXML;
+    while( serviceList.length() > 0 )
+    {
+        serviceXML = GetTagValue(serviceList, "service");
+        ParseServiceFromXML(serviceXML, stb);
+        int cropPos = serviceXML.length() + 2 * sizeof("service") + 4;
+        if(cropPos > serviceList.length())
+            return;
+        serviceList = serviceList.substr(cropPos);
+    }
+}
+
+void Searcher::ParseServiceFromXML(std::string XMLservice, STB& stb)
+{
+    std::string type = GetTagValue(XMLservice, "serviceType");
+    std::string id = GetTagValue(XMLservice, "serviceId");
+    std::string controlURL = GetTagValue(XMLservice, "controlURL");
+    std::string eventURL = GetTagValue(XMLservice, "eventSubURL");
+    std::string descriptionURL = GetTagValue(XMLservice, "SCPDURL");
+
+    stb.AddService(type, id, controlURL, eventURL, descriptionURL);
 }
 
 std::string Searcher::GetHeaderValue(const std::string response, const std::string key)
@@ -158,4 +194,12 @@ std::string Searcher::GetHeaderValue(const std::string response, const std::stri
     pos += key.length() + 2;
 
     return response.substr(pos, response.find("\r\n", pos) - pos);
+}
+
+std::string Searcher::GetTagValue(std::string response, const std::string tagName)
+{
+    unsigned short tagBegin = response.find("<" + tagName + ">") + tagName.length() + 2;
+    unsigned short tagEnd = response.find("</" + tagName + ">", tagBegin);
+
+    return response.substr(tagBegin, tagEnd - tagBegin);
 }

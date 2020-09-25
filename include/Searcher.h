@@ -11,7 +11,7 @@ class Searcher
 {
     private:
         std::string friendlyName;
-        std::vector<STB> discoveredSTB;
+        std::vector<std::unique_ptr<STB>> discoveredSTB;
  
     public:
         Searcher(std::string fName);
@@ -19,10 +19,15 @@ class Searcher
         uint16_t SearchBcast(const std::string delay, int searchTime);
         uint16_t SearchBcast(const std::string delay, const std::string target, int searchTime);
 
-        void SearchSTBDescription(std::string stbUuid);
+        bool SearchSTBDescription(STB& stb);
+        void ShowDetectedSTBs() const;
 
     private:
-        void FilterResponse(const std::string response);
+        void FilterDiscoveryResponse(const std::string response);
+        void FillSTBName(const std::string response, STB& stb);
+        void FillServiceList(std::string response, STB& stb);
+        void ParseServiceFromXML(std::string XMLservice, STB& stb);
 
         std::string GetHeaderValue(const std::string response, const std::string key);
+        std::string GetTagValue(std::string response, std::string tagName);
 };

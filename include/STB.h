@@ -3,12 +3,17 @@
 #include <vector>
 #include <algorithm> 
 #include "MySocket.h"
+#include "XMLParser.h"
+#include "HTTPCommunicator.h"
 
 class STB
 {
     public:
-        STB(std::string fname, std::string uuid, std::string address, std::string port, std::string xmlLocation);
+        STB(std::string friendlyName, std::string uuid, std::string address, std::string port, std::string xmlLocation);
         STB(std::string uuid, std::string address, std::string port, std::string xmlLocation);
+
+        bool GetDescription();
+        void FillServiceList(std::string response);
         
         void AddService(std::string type, std::string id, std::string controlURL, std::string eventURL, std::string descriptionURL);
         void ShowMyServices();
@@ -21,6 +26,8 @@ class STB
         std::string GetXMLLocation() const { return this->configXMLLocation; }    
 
         void SetFriendlyName(std::string fname) { this-> friendlyName = fname; }
+    private:
+        void ParseServiceFromXML(std::string XMLservice);
 
     private:
         enum class DirectionType { IN, OUT };
@@ -39,10 +46,14 @@ class STB
         struct Action
         {
             std::string name;
-            std::vector<Argument> InputParameter;
-            std::vector<Argument> OutputParameter;
+            std::vector<Argument> InputParameters;
+            std::vector<Argument> OutputParameters;
 
+            Action(std::string name);
             void AddArgument(std::string name, DirectionType directionType, std::string relatedStateVariable, ArgumentType type);
+
+            void FillArgumentList(std::string XMLresponse);
+            void ParseArgumentFromXML(std::string argumentXML, std::string stateTable);
         };
 
         struct Service{
@@ -61,6 +72,7 @@ class STB
             bool GetServiceDescription(std:: string STBAddress, std::string STBPort);
 
             void FillActionList(std::string XMLresponse);
+            void ParseActionFromXML(std::string serviceXML);
         };
         
         std::string friendlyName;

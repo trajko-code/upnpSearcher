@@ -234,7 +234,7 @@ std::unique_ptr<STB> Searcher::CreateNewSTB(const std::string uuid, const std::s
     std::string port = location.substr(portBegin, xmlBegin - portBegin);
     std::string xmlLoc = location.substr(xmlBegin, location.length() - xmlBegin);
 
-    return std::unique_ptr<STB>(new STB(uuid, address, port, xmlLoc, ""));  // izbaci "" pre commit-a
+    return std::unique_ptr<STB>(new STB(uuid, address, port, xmlLoc));
 }
 
 std::string Searcher::GetHeaderValue(const std::string response, const std::string key)

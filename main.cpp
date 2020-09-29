@@ -4,7 +4,7 @@ int main()
 {
     Searcher cp("friendlyName");
 
-    if(cp.SearchBcast(std::to_string(4), ALIVE, 10) > 0)
+    if(cp.SearchBcast(std::to_string(2), 3) > 0)
     {
        cp.ShowDetectedSTBs();
     }

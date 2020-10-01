@@ -75,6 +75,13 @@ void Searcher::ShowDetectedSTBs() const
     }
 }
 
+void Searcher::ListServices(const std::string stbName) const
+{
+    for(const auto& stb : this->discoveredSTB)
+        if(stb->GetFriendlyName().compare(stbName) == 0)
+            stb->ShowMyServices();
+}
+
 void Searcher::FilterDiscoveryResponse(const std::string response)
 {
     if(response.find(RESPONSE_OK) == std::string::npos)

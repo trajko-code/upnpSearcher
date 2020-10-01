@@ -23,6 +23,7 @@ class Searcher
         uint16_t SearchBcast(const std::string delay, const std::string target, const int searchTime);
    
         void ShowDetectedSTBs() const;
+        void ListServices(const std::string stbName) const;
     private:
         void FilterDiscoveryResponse(const std::string response);
         void FilterMulticastMessage(const std::string response);

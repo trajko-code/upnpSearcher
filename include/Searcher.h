@@ -26,6 +26,7 @@ class Searcher
         void ShowDetectedSTBs() const;
         void ClearDetectedSTBs();
         std::shared_ptr<STB> GetSTB(int uuid);
+        
     private:
         void FilterDiscoveryResponse(const std::string response);
         void FilterMulticastMessage(const std::string response);

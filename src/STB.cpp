@@ -17,6 +17,8 @@ bool STB::GetDescription()
 {
     std::string XMLResponse = HTTPCommunicator::GetXMLDescription(this->GetXMLLocation(), this->GetAddress(), this->GetPort());
 
+    XMLParser::RemoveBlanks(XMLResponse);
+
     if(!XMLResponse.empty())
     {
         this->SetFriendlyName(XMLParser::GetTagValue(XMLResponse, "friendlyName"));
@@ -28,17 +30,20 @@ bool STB::GetDescription()
         return false;
 }
 
-void STB::FillServiceList(std::string response)
+void STB::FillServiceList(std::string XMLResponse)
 {
-    std::string serviceList = XMLParser::GetTagValue(response, "serviceList").substr(1);
+    std::string serviceList = XMLParser::GetTagValue(XMLResponse, "serviceList");
     std::string serviceXML;
+    std::string endServiceTag = "</service>";
+
     while( serviceList.length() > 0 )
     {
         serviceXML = XMLParser::GetTagValue(serviceList, "service");
         this->ParseServiceFromXML(serviceXML);
-        int cropPos = serviceXML.length() + 2 * sizeof("service") + 4;
+        
+        int cropPos = serviceList.find(endServiceTag) + endServiceTag.length();
         if(cropPos > serviceList.length())
-            return;
+           return;
         serviceList = serviceList.substr(cropPos);
     }
 }
@@ -62,8 +67,10 @@ void STB::AddService(std::string type, std::string id, std::string controlURL, s
 void STB::ShowMyServices()
 {
     std::cout << "STB: " << this->friendlyName << std::endl;
-    for(auto const &service : this->services)
+    for(auto &service : this->services)
+    {
         std::cout << service.GetNameOfService() << " : " << service.GetVersionOfService() << std::endl;
+    }
 }
 
 void STB::SearchServiceDescription(std::string serviceName)
@@ -92,6 +99,35 @@ void STB::Action::AddArgument(std::string name, DirectionType directionType, std
         this->OutputParameters.push_back(argument);
 }
 
+void STB::Action::FillArgumentList(std::string XMLAction, stateMap& stateTable)
+{
+    std::string argumentList = XMLParser::GetTagValue(XMLAction, "argumentList");
+    std::string argumentXML;
+
+    std::string endArgumentTag = "</argument>";
+
+    while( argumentList.length() > 0 )
+    {
+        argumentXML = XMLParser::GetTagValue(argumentList, "argument");
+        this->ParseArgumentFromXML(argumentXML, stateTable);
+        int cropPos = argumentList.find(endArgumentTag) + endArgumentTag.length();
+        if(cropPos > argumentList.length())
+            return;
+        argumentList = argumentList.substr(cropPos);
+    }
+}
+
+void STB::Action::ParseArgumentFromXML(std::string argumentXML, stateMap& stateTable)
+{
+    std::string name = XMLParser::GetTagValue(argumentXML, "name");
+    DirectionType direction = XMLParser::GetTagValue(argumentXML, "direction").compare("in") == 0 ? DirectionType::IN : DirectionType::OUT;
+    std::string relatedStateVariable = XMLParser::GetTagValue(argumentXML, "relatedStateVariable");
+
+    ArgumentType type = stateTable[relatedStateVariable];
+        
+    this->AddArgument(name, direction, relatedStateVariable, type);
+}
+
 std::string STB::Service::GetNameOfService() const
 {
     ushort nameBegin = this->type.find(":service:") + 9;
@@ -114,9 +150,11 @@ std::string STB::Service::GetServiceId() const
 bool STB::Service::GetServiceDescription(std::string STBAddress, std::string STBPort)
 {
     std::string XMLResponse = HTTPCommunicator::GetXMLDescription(descriptionURL, STBAddress, STBPort);
+
+    XMLParser::RemoveBlanks(XMLResponse);
+
     if(!XMLResponse.empty())
     {
-        //std::cout << XMLResponse << std::endl;
         FillActionList(XMLResponse);
         return true;
     }
@@ -124,52 +162,78 @@ bool STB::Service::GetServiceDescription(std::string STBAddress, std::string STB
         return false;
 }
 
-void STB::Service::FillActionList(std::string XMLresponse)
+void STB::Service::FillActionList(std::string XMLServiceResponse)
 {
-    std::string actionList = XMLParser::GetTagValue(XMLresponse, "actionList").substr(1);
+    std::string actionList = XMLParser::GetTagValue(XMLServiceResponse, "actionList");
+    std::string XMLStateTable = XMLParser::GetTagValue(XMLServiceResponse, "serviceStateTable");
+    std::unique_ptr<stateMap> stateTable = GetStateMap(XMLStateTable);
     std::string actionXML;
+
+    std::string endActionTag = "</action>";
+
     while( actionList.length() > 0 )
     {
         actionXML = XMLParser::GetTagValue(actionList, "action");
-        this->ParseActionFromXML(actionXML);
-        int cropPos = actionXML.length() + 2 * sizeof("action") + 4;
+
+        this->ParseActionFromXML(actionXML, *stateTable);
+
+        int cropPos = actionList.find(endActionTag) + endActionTag.length();
+
         if(cropPos > actionList.length())
             return;
+
         actionList = actionList.substr(cropPos);
     }
 }
 
-void STB::Service::ParseActionFromXML(std::string actionXML)
+std::unique_ptr<stateMap> STB::Service::GetStateMap(std::string XMLStateTable)
+{
+    std::unique_ptr<stateMap> map(new stateMap);
+
+    std::string XMLStateVariable;
+    std::string name;
+    std::string dataType;
+
+    std::string endVariableTag = "</stateVariable>";
+
+    while( XMLStateTable.length() > 0 )
+    {
+        XMLStateVariable = XMLParser::GetTagValue(XMLStateTable, "stateVariable");
+        name = XMLParser::GetTagValue(XMLStateVariable, "name");
+        dataType = XMLParser::GetTagValue(XMLStateVariable, "dataType");
+        ArgumentType type;
+
+        if(dataType.compare("string") == 0) 
+            type = ArgumentType::STRING;
+        else if(dataType.compare("i4") == 0) 
+            type = ArgumentType::I4;
+        else if(dataType.compare("int") == 0) 
+            type = ArgumentType::INT;
+        else if(dataType.compare("float") == 0) 
+            type = ArgumentType::FLOAT;
+        else if(dataType.compare("char") == 0) 
+            type = ArgumentType::CHAR;
+        else if(dataType.compare("boolean") == 0)
+            type = ArgumentType::BOOLEAN;
+
+        if(map->find(name) == map->end())
+            map->insert({name, type});
+
+        int cropPos = XMLStateTable.find(endVariableTag) + endVariableTag.length();
+
+        if(cropPos > XMLStateTable.length())
+            return map;
+            
+        XMLStateTable = XMLStateTable.substr(cropPos);
+    }
+
+    return map;
+}
+
+void STB::Service::ParseActionFromXML(std::string actionXML, stateMap& stateTable)
 {
     std::string name = XMLParser::GetTagValue(actionXML, "name");
     Action action(name);
-    action.FillArgumentList(actionXML);
+    action.FillArgumentList(actionXML, stateTable);
     this->actions.push_back(action);
-}
-
-void STB::Action::FillArgumentList(std::string XMLresponse)
-{
-    std::string argumentList = XMLParser::GetTagValue(XMLresponse, "argumentList").substr(1);
-    std::string stateTable = XMLParser::GetTagValue(XMLresponse, "serviceStateTable");
-    std::string argumentXML;
-    while( argumentList.length() > 0 )
-    {
-        argumentXML = XMLParser::GetTagValue(argumentList, "argument");
-        this->ParseArgumentFromXML(argumentXML, stateTable);
-        int cropPos = argumentXML.length() + 2 * sizeof("argument") + 4;
-        if(cropPos > argumentList.length())
-            return;
-        argumentList = argumentList.substr(cropPos);
-    }
-}
-
-void STB::Action::ParseArgumentFromXML(std::string argumentXML, std::string stateTable)
-{
-    std::string name = XMLParser::GetTagValue(argumentXML, "argumentXML");
-    DirectionType direction = XMLParser::GetTagValue(argumentXML, "direction").compare("in") == 0 ? DirectionType::IN : DirectionType::OUT;
-    std::string relatedStateVariable = XMLParser::GetTagValue(argumentXML, "relatedStateVariable");
-
-    ArgumentType type; //iz stateTable izvuci tip 
-
-    this->AddArgument(name, direction, relatedStateVariable, type);
 }

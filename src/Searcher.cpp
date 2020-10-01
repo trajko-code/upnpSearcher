@@ -59,7 +59,7 @@ uint16_t Searcher::SearchBcast(const std::string delay, const std::string target
     }
 
     if(!this->discoveredSTB.empty())
-        this->discoveredSTB.remove_if([this](std::unique_ptr<STB>& stb) { return !stb->GetDescription(); });
+        this->discoveredSTB.remove_if([this](std::shared_ptr<STB>& stb) { return !stb->GetDescription(); });
         // for(auto& stb : this->discoveredSTB)
         //     if(!stb->SearchSTBDescription())
         //         this->discoveredSTB.remove(stb);
@@ -67,12 +67,25 @@ uint16_t Searcher::SearchBcast(const std::string delay, const std::string target
     return this->discoveredSTB.size();
 }
 
+int Searcher::GetDetectedSTBsCount() const 
+{
+    return this->discoveredSTB.size();
+}
+
 void Searcher::ShowDetectedSTBs() const
 {
+    int i = 1;
     for(auto const& stb : this->discoveredSTB)
     {
-        std::cout<<stb->GetFriendlyName()<<std::endl;
+        std::cout<< "\t" << i << ". " <<stb->GetFriendlyName() << "  (" << stb->GetUUID() << ")" << std::endl;
+        i++;
     }
+}
+
+void Searcher::ClearDetectedSTBs()
+{
+    if(this->discoveredSTB.size() > 0 )
+        this->discoveredSTB.clear();
 }
 
 void Searcher::FilterDiscoveryResponse(const std::string response)
@@ -152,7 +165,7 @@ void Searcher::FilterMulticastMessage(const std::string response)
     // }
 }
 
-std::unique_ptr<STB> Searcher::CreateNewSTB(const std::string uuid, const std::string location)
+std::shared_ptr<STB> Searcher::CreateNewSTB(const std::string uuid, const std::string location)
 {
     unsigned short addrBegin = location.find('/') + 2;
     unsigned short portBegin = addrBegin + 16;
@@ -161,7 +174,16 @@ std::unique_ptr<STB> Searcher::CreateNewSTB(const std::string uuid, const std::s
     std::string port = location.substr(portBegin, xmlBegin - portBegin);
     std::string xmlLoc = location.substr(xmlBegin, location.length() - xmlBegin);
 
-    return std::unique_ptr<STB>(new STB(uuid, address, port, xmlLoc));
+    return std::shared_ptr<STB>(new STB(uuid, address, port, xmlLoc));
+}
+
+std::shared_ptr<STB> Searcher::GetSTB(int ordinalNumber)
+{
+    int i = 0;
+    for(auto const &stb : this->discoveredSTB )
+        if(i++ == ordinalNumber)
+            return stb;
+    return nullptr;
 }
 
 std::string Searcher::GetHeaderValue(const std::string response, const std::string key)

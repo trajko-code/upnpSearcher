@@ -14,19 +14,22 @@ class Searcher
 {
     private:
         std::string friendlyName;
-        std::list<std::unique_ptr<STB>> discoveredSTB;
+        std::list<std::shared_ptr<STB>> discoveredSTB;
  
     public:
         Searcher(std::string friendlyName);
 
         uint16_t SearchBcast(const std::string delay, const int searchTime);
         uint16_t SearchBcast(const std::string delay, const std::string target, const int searchTime);
-   
+
+        int GetDetectedSTBsCount() const;
         void ShowDetectedSTBs() const;
+        void ClearDetectedSTBs();
+        std::shared_ptr<STB> GetSTB(int uuid);
     private:
         void FilterDiscoveryResponse(const std::string response);
         void FilterMulticastMessage(const std::string response);
 
-        std::unique_ptr<STB> CreateNewSTB(const std::string uuid, const std::string location);
+        std::shared_ptr<STB> CreateNewSTB(const std::string uuid, const std::string location);
         std::string GetHeaderValue(const std::string response, const std::string key);
 };

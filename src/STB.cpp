@@ -64,20 +64,33 @@ void STB::AddService(std::string type, std::string id, std::string controlURL, s
     this->services.push_back(Service{type, id, controlURL, eventURL, descriptionURL});
 }
 
-void STB::ShowMyServices()
+void STB::ShowMyServices() const
 {
-    std::cout << "STB: " << this->friendlyName << std::endl;
+    int i = 1;
     for(auto &service : this->services)
     {
-        std::cout << service.GetNameOfService() << " : " << service.GetVersionOfService() << std::endl;
+        std::cout << "\t" << i++ << ". " << service.GetNameOfService() << " : " << service.GetVersionOfService() << std::endl;
     }
 }
 
-void STB::SearchServiceDescription(std::string serviceName)
+void STB::ShowServiceActions(int serviceNumber) 
+{
+    if(this->services[serviceNumber].actions.size() < 1)
+        this->services[serviceNumber].GetServiceDescription(this->GetAddress(), this->GetPort());
+    
+    this->services[serviceNumber].ShowMyActions();
+}
+
+void STB::SearchServiceDescription(std::string serviceName)  
 {
     auto service = std::find_if(this->services.begin(), this->services.end(), [&serviceName](const Service& s) { return !s.GetNameOfService().compare(serviceName); });
     if(service != this->services.end())
         service->GetServiceDescription(this->GetAddress(), this->GetPort());
+}
+
+std::string STB::GetServiceName(int serviceNumber)
+{
+    return this->services[serviceNumber].GetNameOfService();
 }
 
 STB::Argument::Argument(std::string name, DirectionType directionType, std::string relatedStateVariable, ArgumentType type)
@@ -85,9 +98,51 @@ STB::Argument::Argument(std::string name, DirectionType directionType, std::stri
 {
 }
 
+void STB::Argument::ShowArgument() const
+{
+    std::cout << "{ " << this->name <<  this->GetTypeString() << " }";
+}
+
+std::string STB::Argument::GetTypeString() const
+{
+    if(this->type == ArgumentType::STRING) 
+        return "string";
+    else if(this->type == ArgumentType::I4) 
+        return "i4";
+    else if(this->type == ArgumentType::INT) 
+        return "int";
+    else if(this->type == ArgumentType::FLOAT) 
+        return "float";
+    else if(this->type == ArgumentType::CHAR) 
+        return "char";
+    else if(this->type == ArgumentType::BOOLEAN)
+        return "boolean";
+    else
+        return "";
+}
+
 STB::Action::Action(std::string name)
     :name(name)
 {
+}
+
+void STB::Action::ShowAction() const
+{
+    std::cout << "\t" << this->name << std::endl;
+    std::cout << "\t\t" << "input: ";
+    for(auto const& arg : this->InputParameters)
+    {
+        arg.ShowArgument();
+        std::cout << " ";
+    }
+    std::cout << std::endl;
+    std::cout << "\t\t" << "output: ";
+    for(auto const& arg : this->OutputParameters)
+    {
+        arg.ShowArgument();
+        std::cout << " ";
+    }
+    std::cout << std::endl;
 }
 
 void STB::Action::AddArgument(std::string name, DirectionType directionType, std::string relatedStateVariable, ArgumentType type)
@@ -145,6 +200,12 @@ std::string STB::Service::GetServiceId() const
 {
     ushort idBegin = this->id.find(":serviceId:") + 11;
     return this->id.substr(idBegin, this->id.length() - idBegin);
+}
+
+void STB::Service::ShowMyActions() const
+{
+    for(auto const& action : this->actions)
+        action.ShowAction();
 }
 
 bool STB::Service::GetServiceDescription(std::string STBAddress, std::string STBPort)

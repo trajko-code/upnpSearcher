@@ -22,10 +22,10 @@ std::string HTTPCommunicator::GetXMLDescription(std::string XMLUrl, std::string 
     char recvBuf[BUFF_SIZE];
     memset(recvBuf, 0, BUFF_SIZE);
 
-    while(sock.Recieve(recvBuf, BUFF_SIZE, 0) != 0)
+    while(sock.Recieve(recvBuf, BUFF_SIZE - 1, 0) != 0)
     {
-        if(!XMLresponse.empty())
-            XMLresponse.pop_back();
+        recvBuf[BUFF_SIZE - 1] = '\0';
+
         XMLresponse += recvBuf;
         memset(recvBuf, 0, BUFF_SIZE);
     }

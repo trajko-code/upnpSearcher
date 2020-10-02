@@ -8,7 +8,7 @@
 #include "HTTPCommunicator.h"
 
 enum class DirectionType { IN, OUT };
-enum class ArgumentType { INT, FLOAT, CHAR, STRING, BOOLEAN, I4 };
+enum class ArgumentType { INT, FLOAT, CHAR, STRING, BOOLEAN, I4, UNKNOWN };
 
 typedef std::map<std::string, ArgumentType> stateMap;
 
@@ -25,6 +25,8 @@ class STB
         void ShowMyServices() const;
         void ShowServiceActions(int serviceNumber);
         void SearchServiceDescription(std::string serviceName); 
+
+        bool ExecuteServiceAction(uint serviceNumber, uint actionNumber);
 
         std::string GetFriendlyName() const { return this->friendlyName; }
         std::string GetUUID() const { return this->uuid; }
@@ -49,6 +51,7 @@ class STB
             Argument(std::string name, DirectionType directionType, std::string relatedStateVariable, ArgumentType type);
             void ShowArgument() const;
             std::string GetTypeString() const;
+            std::string GetName() const { return this->name; }
         };
 
         struct Action
@@ -58,24 +61,34 @@ class STB
             std::vector<Argument> OutputParameters;
 
             Action(std::string name);
+            std::string GetName() const { return this->name; }
+
             void ShowAction() const;
             void AddArgument(std::string name, DirectionType directionType, std::string relatedStateVariable, ArgumentType type);
 
             void FillArgumentList(std::string XMLAction, stateMap& stateTable);
             void ParseArgumentFromXML(std::string argumentXML, stateMap& stateTable);
+
+            bool Execute(std::string STBAddress, std::string STBPort, std::string  serviceControlURL, std::string serviceType);
+            std::string MakeSOAPRequestBody(std::string serviceType);
+            std::string MakeArgumentForSOAPBody();
+            bool correctArgumentType(std::string argumentType, std::string inputArgumentType);
+            bool ParseSOAPResponse(std::string SOAPResponse);
         };
 
         struct Service{
             std::string type;
             std::string id;
-            std::string descriptionURL;
             std::string controlURL;
             std::string eventURL;
+            std::string descriptionURL;
             std::vector<Action> actions;
 
             std::string GetNameOfService() const;
             std::string GetVersionOfService() const;
             std::string GetServiceId() const;
+            std::string GetControlUrl() const { return this->controlURL; }
+            std::string GetType() const { return this->type; }
  
             void ShowMyActions() const;
             bool GetServiceDescription(std::string STBAddress, std::string STBPort);
@@ -83,6 +96,8 @@ class STB
             void FillActionList(std::string XMLServiceResponse);
             std::unique_ptr<stateMap> GetStateMap(std::string XMLStateTable);
             void ParseActionFromXML(std::string serviceXML, stateMap& stateTable);
+
+            bool ExecuteAction(std::string STBAddress, std::string STBPort, uint actionName);
         };
         
         std::string friendlyName;

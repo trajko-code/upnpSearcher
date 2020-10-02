@@ -77,9 +77,12 @@ std::string HTTPCommunicator::PostExecuteAction(std::string controlURL, std::str
     return PostBodyFromResponse(PostResponse);
 }
 
-std::string HTTPCommunicator::PostBodyFromResponse(std::string PostResponse)
+std::string HTTPCommunicator::PostBodyFromResponse(std::string postResponse)
 {
-    size_t soapBegin = PostResponse.find('<');
+    size_t soapBegin = postResponse.find('<');
+
+    if(soapBegin == std::string::npos)
+        return postResponse;
     
-    return PostResponse.substr(soapBegin, PostResponse.length() - soapBegin);
+    return postResponse.substr(soapBegin, postResponse.length() - soapBegin);
 }

@@ -1,6 +1,8 @@
 #include "STB.h"
 
 #define BUFF_SIZE 1024
+#define XMLNS "schemas.xmlsoap.org/soap/envelope/"
+#define ENCODING_STYLE "schemas.xmlsoap.org/soap/encoding/"
 
 STB::STB(std::string friendlyName, std::string uuid, std::string address, std::string port, std::string xmlLocation)
     :STB(uuid, address, port, xmlLocation)
@@ -86,6 +88,11 @@ void STB::SearchServiceDescription(std::string serviceName)
     auto service = std::find_if(this->services.begin(), this->services.end(), [&serviceName](const Service& s) { return !s.GetNameOfService().compare(serviceName); });
     if(service != this->services.end())
         service->GetServiceDescription(this->GetAddress(), this->GetPort());
+}
+
+bool STB::ExecuteServiceAction(uint serviceNumber, uint actionNumber)
+{
+    return this->services[serviceNumber-1].ExecuteAction(this->GetAddress(), this->GetPort(), actionNumber);
 }
 
 std::string STB::GetServiceName(int serviceNumber)
@@ -181,6 +188,109 @@ void STB::Action::ParseArgumentFromXML(std::string argumentXML, stateMap& stateT
     ArgumentType type = stateTable[relatedStateVariable];
         
     this->AddArgument(name, direction, relatedStateVariable, type);
+}
+
+bool STB::Action::Execute(std::string STBAddress, std::string STBPort, std::string  serviceControlURL, std::string serviceType)
+{
+    try
+    {
+        std::string soapAction = serviceType + "#" + this->GetName();
+        std::string body = MakeSOAPRequestBody(serviceType);
+
+        std::string SOAPResponse = HTTPCommunicator::PostExecuteAction(serviceControlURL, STBAddress, STBPort, soapAction, body);
+        std::cout << SOAPResponse << "\n";
+        return ParseSOAPResponse(SOAPResponse); //??
+    }
+    catch(const std::string& ex)
+    {
+        std::cerr << ex << '\n';
+        return false;
+    }
+    
+}
+
+std::string STB::Action::MakeSOAPRequestBody(std::string serviceType)
+{ 
+    std::string body =  "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
+                        //"xmlns:s=\"http://" + XMLNS + "\"\n"
+                        //"s:encodingStyle=\"http://" + ENCODING_STYLE + "\">\n"
+                        "s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">\n"
+                        "<s:Body>\n"
+                        "<u:" + this->GetName() + " xmlns:u=\"" +  serviceType + "\">\n" 
+                        + this->MakeArgumentForSOAPBody() +
+                        "</u:" + this->GetName() + ">"
+                        "</s:Body>\n"
+                        "</s:Envelope>\n";
+    return body;              
+}
+
+std::string STB::Action::MakeArgumentForSOAPBody()
+{
+    std::string arguments;
+    std::string argumentName;
+    std::string argumentType;
+    std::string argumentValue;
+    std::cout << "Enter arguments for the action \"" + this->GetName() +"\":\n";
+    for(auto const& arg : this->InputParameters)
+    {
+        argumentName = arg.GetName();
+        argumentType = arg.GetTypeString();
+        std::cout << "Argument: " + argumentName + "(" + argumentType + ")  Value: ";
+        std::cin >> argumentValue;
+        
+        if(this->correctArgumentType(argumentType, argumentValue))
+            arguments += "<" + argumentName +">" + argumentValue + "</" + argumentName + ">\n";
+        else
+            throw std::string("Invalid input argument!");
+    }
+    return arguments;
+}
+
+bool STB::Action::correctArgumentType(std::string argumentType, std::string inputArgumentType)
+{
+        if(argumentType.compare("string") == 0)
+            return true;
+        else if(argumentType.compare("int") == 0 || argumentType.compare("i4") == 0) 
+        {
+            try
+            {
+                int type = std::stoi(inputArgumentType);
+                return true;
+            }
+            catch(...)
+            {
+                return false;
+            }
+        }
+        else if(argumentType.compare("float") == 0)
+        {
+            try
+            {
+                float type = std::stof(inputArgumentType);
+                return true;
+            }
+            catch(...)
+            {
+                return false;
+            }
+        }
+        else if(argumentType.compare("char") == 0)
+            return inputArgumentType.length() == 1;
+        else if(argumentType.compare("boolean") == 0)
+        {
+            return inputArgumentType.compare("true") == 0 || inputArgumentType.compare("TRUE") == 0 
+                    || inputArgumentType.compare("false") == 0 || inputArgumentType.compare("FALSE") == 0 
+                    || inputArgumentType.compare("yes") == 0 || inputArgumentType.compare("YES") == 0
+                    || inputArgumentType.compare("no") == 0 || inputArgumentType.compare("NO") == 0
+                    || inputArgumentType.compare("0") == 0 || inputArgumentType.compare("1") == 0;
+        }
+        else
+            return false;
+}
+
+bool STB::Action::ParseSOAPResponse(std::string SOAPResponse)
+{
+    return true;
 }
 
 std::string STB::Service::GetNameOfService() const
@@ -280,6 +390,9 @@ std::unique_ptr<stateMap> STB::Service::GetStateMap(std::string XMLStateTable)
             type = ArgumentType::CHAR;
         else if(dataType.compare("boolean") == 0)
             type = ArgumentType::BOOLEAN;
+        else
+            type = ArgumentType::UNKNOWN;
+        
 
         if(map->find(name) == map->end())
             map->insert({name, type});
@@ -301,4 +414,9 @@ void STB::Service::ParseActionFromXML(std::string actionXML, stateMap& stateTabl
     Action action(name);
     action.FillArgumentList(actionXML, stateTable);
     this->actions.push_back(action);
+}
+
+bool STB::Service::ExecuteAction(std::string STBAddress, std::string STBPort, uint actionName)
+{
+    return this->actions[actionName-1].Execute(STBAddress, STBPort, this->GetControlUrl(), this->GetType());
 }

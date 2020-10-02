@@ -9,7 +9,7 @@ class HTTPCommunicator
 {
     private:
         HTTPCommunicator() {}
-        static std::string PostBodyFromResponse(std::string PostResponse);
+        static std::string PostBodyFromResponse(std::string postResponse);
     public:
         static std::string GetXMLDescription(std::string XMLUrl, std::string address, std::string port);
         static std::string PostExecuteAction(std::string controlURL, std::string address, std::string port, std::string soapAction, std::string body);

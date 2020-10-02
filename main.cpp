@@ -94,9 +94,15 @@ int main()
                                 
                                 std::cout << "Enter the ordinal number of the action:\n";
                                 std::cin >> actionNumberEntry;
-                                //actionNumber = getInt(actionNumberEntry);
-
-                                //zahtev za unosom argumenata
+                                actionNumber = getInt(actionNumberEntry);
+                                if(stb->ExecuteServiceAction(serviceNumber, actionNumber))
+                                {
+                                    std::cout << "Uspesno!!!\n";
+                                }
+                                else
+                                {
+                                   std::cout << "Neuspesno!!!:\n";
+                                } 
                             }
                             else if(actionEntry.compare("0") == 0)
                                 endServiceMenu = true;

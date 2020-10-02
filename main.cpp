@@ -1,112 +1,135 @@
 #include "Searcher.h"
 
 #define MX_DELAY "2"
-#define SEARCH_TIME 3
+#define SEARCH_TIME 2
+
+int getInt(std::string input);
 
 int main()
 {
-    int searchTime = SEARCH_TIME;
     Searcher cp("friendlyName");
-    
+    std::string entry;
+    std::string ordinalNumber;
+    uint number;
+    std::string serviceEntry;
+    std::string serviceNumberEntry;
+    uint serviceNumber;
+    std::string actionEntry;
+    std::string actionNumberEntry;
+    uint actionNumber;
     bool back;
 
     while(true)
     {
-        std::cout << std::endl << "*Main menu*" << std::endl;
-        std::cout << "0. Quit" << std::endl;
-        std::cout << "1. Search STBs" << std::endl;
-        std::cout << "2. Select STB" << std::endl;
-        std::cout << "Enter number:" << std::endl;
+        std::cout << "\n*Main menu*\n";
+        std::cout << "(0) Quit" << '\n';
+        std::cout << "(1) Search STBs\n";
+        std::cout << "(2) Select STB\n";
+        std::cout << "Enter number:\n";
         std::cout << ">";
 
-        uint entry;
-        scanf("%u", &entry);
-        if(entry == 1)
+        std::cin >> entry;
+        if(entry.compare("1") == 0)
         {
-            std::cout << "Searching devices..." << std::endl;
+            std::cout << "Searching devices...\n";
             cp.ClearDetectedSTBs();
-            if(cp.SearchBcast(MX_DELAY, searchTime) > 0)
+            if(cp.SearchBcast(MX_DELAY, SEARCH_TIME) > 0)
             {
-                std::cout<<"///DETECTED DEVICES///"<<std::endl;
+                std::cout << ">>>DETECTED DEVICES<<<\n";
                 cp.ShowDetectedSTBs();
             }
             else
-                std::cout<<"No STB detected."<<std::endl;
+                std::cout<<"No STB detected.\n";
         }
-        else if(entry == 2)
+        else if(entry.compare("2") == 0)
         {
             std::shared_ptr<STB> stb;
-            std::cout << "Enter the ordinal number of the device:" << std::endl;
-            uint ordinalNumber;
-            scanf("%u", &ordinalNumber);
-            if(ordinalNumber <= cp.GetDetectedSTBsCount())
-                stb = cp.GetSTB(ordinalNumber - 1);
+            std::cout << "Enter the ordinal number of the device:\n";
+            std::cin >> ordinalNumber;
+            number = getInt(ordinalNumber);
+            if(number > 0 && number <= cp.GetDetectedSTBsCount())
+                stb = cp.GetSTB(number - 1);
             else
             {
-                std::cout << "Wrong entry" << std::endl;
+                std::cout << "!!! Wrong entry !!!\n";
                 continue;
             }
 
             back = false;
-            std::cout << "Selected STB: " << stb->GetFriendlyName() << std::endl;
-            std::cout << "STB services: " << std::endl;
+            std::cout << "Selected STB: " << stb->GetFriendlyName() << '\n';
+            std::cout << "STB services: \n";
             stb->ShowMyServices();
             while(!back)
             {
-                std::cout << std::endl << "**STB menu**" << std::endl;
-                std::cout << "(0) Back" << std::endl;
-                std::cout << "(1) Select service" << std::endl;
-                std::cout << "Enter number: " << std::endl;
+                std::cout << '\n' << "**STB menu**\n";
+                std::cout << "(0) Back\n";
+                std::cout << "(1) Select service\n";
+                std::cout << "Enter number: \n";
                 std::cout << ">";
 
-                uint serviceEntry;
-                scanf("%u", &serviceEntry);
-                if(serviceEntry == 1)
+                std::cin >> serviceEntry;
+                if(serviceEntry.compare("1") == 0)
                 {
-                    uint serviceNumber;
-                    std::cout << "Enter the ordinal number of the service:" << std::endl;
-                    scanf("%u", &serviceNumber);
-                    if(serviceNumber <= stb->GetDetectedServicesCount())
+                    
+                    std::cout << "Enter the ordinal number of the service:\n";
+                    std::cin >> serviceNumberEntry;
+                    serviceNumber = getInt(serviceNumberEntry);
+                    if(serviceNumber > 0 && serviceNumber <= stb->GetDetectedServicesCount())
                     {
-                        std::cout << "Selected service: " << stb->GetServiceName(serviceNumber - 1) << std::endl;
-                        std::cout << "Service actions: " << std::endl;
+                        std::cout << "Selected service: " << stb->GetServiceName(serviceNumber - 1) << '\n';
+                        std::cout << "Service actions: \n";
                         stb->ShowServiceActions(serviceNumber - 1);
 
                         bool endServiceMenu = false;
                         while(!endServiceMenu)
                         {
-                            std::cout << std::endl << "***Service Menu***" << std::endl;
-                            std::cout << "(0) Back" << std::endl;
-                            std::cout << "(1) Execute action" << std::endl;
-                            std::cout << "Enter number: " << std::endl;
+                            std::cout << '\n' << "***Service menu***\n";
+                            std::cout << "(0) Back" << '\n';
+                            std::cout << "(1) Execute action\n";
+                            std::cout << "Enter number:\n";
                             
-                            uint actionEntry;
-                            scanf("%u", &actionEntry);
-                            if(actionEntry == 1)
+                            std::cin >> actionEntry;
+                            if(actionEntry.compare("1") == 0)
                             {
-                                uint actionNumber;
-                                std::cout << "Enter the ordinal number of the action:" << std::endl;
-                                scanf("%u", &actionNumber);
+                                
+                                std::cout << "Enter the ordinal number of the action:\n";
+                                std::cin >> actionNumberEntry;
+                                //actionNumber = getInt(actionNumberEntry);
 
-                                //zahte za unosom argumenata
+                                //zahtev za unosom argumenata
                             }
-                            else if(actionEntry == 0)
+                            else if(actionEntry.compare("0") == 0)
                                 endServiceMenu = true;
-
                         }
                     }
                     else
                     {
-                        std::cout << "Wrong entry" << std::endl;
+                        std::cout << "!!! Wrong entry !!!\n";
                         continue;
                     }
                 }
-                else if(serviceEntry == 0)
+                else if(serviceEntry.compare("0") == 0)
                     back = true;
             }
         }
-        else if(entry == 0)
+        else if(entry.compare("0") == 0)
             break;
+        else
+            std::cout << "!!! Wrong entry !!!\n";
     }
+
     return 0;
+}
+
+int getInt(std::string input)
+{
+    try
+    {
+        return std::stoi(input);
+    }
+    catch(...)
+    {
+        return -1;
+    }
+    
 }

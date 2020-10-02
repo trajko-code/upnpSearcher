@@ -100,7 +100,7 @@ STB::Argument::Argument(std::string name, DirectionType directionType, std::stri
 
 void STB::Argument::ShowArgument() const
 {
-    std::cout << "{ " << this->name <<  this->GetTypeString() << " }";
+    std::cout << "{ " << this->name << " " <<  this->GetTypeString() << " }";
 }
 
 std::string STB::Argument::GetTypeString() const
@@ -128,7 +128,7 @@ STB::Action::Action(std::string name)
 
 void STB::Action::ShowAction() const
 {
-    std::cout << "\t" << this->name << std::endl;
+    std::cout << this->name << std::endl;
     std::cout << "\t\t" << "input: ";
     for(auto const& arg : this->InputParameters)
     {
@@ -204,8 +204,12 @@ std::string STB::Service::GetServiceId() const
 
 void STB::Service::ShowMyActions() const
 {
+    uint i = 1;
     for(auto const& action : this->actions)
+    {
+        std::cout<< "\t" << i++ << ". ";
         action.ShowAction();
+    }
 }
 
 bool STB::Service::GetServiceDescription(std::string STBAddress, std::string STBPort)

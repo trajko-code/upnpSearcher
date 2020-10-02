@@ -1,11 +1,48 @@
 #include "XMLParser.h"
+#include "iostream"
 
-std::string XMLParser::GetTagValue(std::string response, std::string tagName)
+std::string XMLParser::GetTagValue(const std::string xmlMessage, std::string tagName)
 {
-    unsigned short tagBegin = response.find("<" + tagName + ">") + tagName.length() + 2;
-    unsigned short tagEnd = response.find("</" + tagName + ">", tagBegin);
+    size_t tagBegin = xmlMessage.find("<" + tagName + ">");
+    size_t tagValueBegin;
 
-    return response.substr(tagBegin, tagEnd - tagBegin);
+    if(tagBegin == std::string::npos)
+    {
+        tagBegin = xmlMessage.find("<" + tagName + " ");
+        
+        if(tagBegin == std::string::npos)
+            return "";
+        else
+            tagValueBegin = xmlMessage.find(">", tagBegin) + 1;
+    }
+    else
+    {
+        tagValueBegin = tagBegin + tagName.length() + 2;
+    }
+        
+    size_t tagValueEnd = xmlMessage.find("</" + tagName + ">", tagBegin);
+
+    return xmlMessage.substr(tagValueBegin, tagValueEnd - tagValueBegin);
+}
+
+std::string XMLParser::GetTagAttributeValue(const std::string xmlMessage, std::string tagName, std::string attributeName)
+{
+    size_t tagAttrBegin = xmlMessage.find("<" + tagName + " ");
+    if(tagAttrBegin == std::string::npos)
+        return "";
+    
+    tagAttrBegin += tagName.length() + 2;
+
+    std::string allTagAttributes = xmlMessage.substr(tagAttrBegin, xmlMessage.find('>', tagAttrBegin) - tagAttrBegin);
+
+    size_t attrNameBegin = allTagAttributes.find(attributeName);
+
+    if(attrNameBegin == std::string::npos)
+        return "";
+
+    size_t attrValBegin = attrNameBegin + attributeName.length() + 2;
+
+    return allTagAttributes.substr(attrValBegin, allTagAttributes.find("\"", attrValBegin) - attrValBegin);
 }
 
 void XMLParser::RemoveBlanks(std::string& response)

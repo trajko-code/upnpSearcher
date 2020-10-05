@@ -33,10 +33,13 @@ class STB
         std::string GetAddress() const { return this->address; }
         std::string GetPort() const { return this->port; }
         std::string GetXMLLocation() const { return this->configXMLLocation; }
+        std::string GetVerificationCode() { return this->verificationCode; }
         int GetDetectedServicesCount() const { return this->services.size(); }
-        std::string GetServiceName(int serviceNumber);
-
-        void SetFriendlyName(std::string fname) { this-> friendlyName = fname; }
+        std::string GetServiceName(int serviceNumber) const;
+        uint GetServiceActionsCount(int serviceNumber) const;
+        
+        void SetFriendlyName(std::string fname) { this->friendlyName = fname; }
+        void SetVerificationCode(std::string vcode) { this->verificationCode = vcode; }
     private:
         void ParseServiceFromXML(std::string XMLservice);
 
@@ -73,7 +76,7 @@ class STB
             std::string MakeSOAPRequestBody(std::string serviceType);
             std::string MakeArgumentForSOAPBody();
             bool correctArgumentType(std::string argumentType, std::string inputArgumentType);
-            bool ParseSOAPResponse(std::string SOAPResponse);
+            void ParseSOAPResponse(std::string SOAPResponse);
         };
 
         struct Service{
@@ -89,6 +92,7 @@ class STB
             std::string GetServiceId() const;
             std::string GetControlUrl() const { return this->controlURL; }
             std::string GetType() const { return this->type; }
+            uint GetActionNumber() const { return this->actions.size(); }
  
             void ShowMyActions() const;
             bool GetServiceDescription(std::string STBAddress, std::string STBPort);
@@ -105,5 +109,6 @@ class STB
         std::string address;
         std::string port;
         std::string configXMLLocation;
+        std::string verificationCode;
         std::vector<Service> services;
 };

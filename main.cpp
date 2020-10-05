@@ -1,4 +1,5 @@
 #include "Searcher.h"
+#include "Configuration.h"
 
 #define MX_DELAY "2"
 #define SEARCH_TIME 2
@@ -7,7 +8,7 @@ int getInt(std::string input);
 
 int main()
 {
-    Searcher cp("friendlyName");
+    Searcher cp(Config::friendlyName);
     std::string entry;
     std::string ordinalNumber;
     uint number;
@@ -95,14 +96,8 @@ int main()
                                 std::cout << "Enter the ordinal number of the action:\n";
                                 std::cin >> actionNumberEntry;
                                 actionNumber = getInt(actionNumberEntry);
-                                if(stb->ExecuteServiceAction(serviceNumber, actionNumber))
-                                {
-                                    std::cout << "Uspesno!!!\n";
-                                }
-                                else
-                                {
-                                   std::cout << "Neuspesno!!!:\n";
-                                } 
+                                if(actionNumber > 0 && actionNumber <= stb->GetServiceActionsCount(serviceNumber-1))
+                                    stb->ExecuteServiceAction(serviceNumber-1, actionNumber-1);
                             }
                             else if(actionEntry.compare("0") == 0)
                                 endServiceMenu = true;

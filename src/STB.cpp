@@ -71,7 +71,7 @@ void STB::ShowMyServices() const
     int i = 1;
     for(auto &service : this->services)
     {
-        std::cout << "\t" << i++ << ". " << service.GetNameOfService() << " : " << service.GetVersionOfService() << std::endl;
+        std::cout << "\t" << i++ << ". " << service.GetNameOfService() << " : " << service.GetVersionOfService() << '\n';
     }
 }
 
@@ -92,12 +92,17 @@ void STB::SearchServiceDescription(std::string serviceName)
 
 bool STB::ExecuteServiceAction(uint serviceNumber, uint actionNumber)
 {
-    return this->services[serviceNumber-1].ExecuteAction(this->GetAddress(), this->GetPort(), actionNumber);
+    return this->services[serviceNumber].ExecuteAction(this->GetAddress(), this->GetPort(), actionNumber);
 }
 
-std::string STB::GetServiceName(int serviceNumber)
+std::string STB::GetServiceName(int serviceNumber) const
 {
     return this->services[serviceNumber].GetNameOfService();
+}
+
+uint STB::GetServiceActionsCount(int serviceNumber) const
+{
+    return this->services[serviceNumber].actions.size();
 }
 
 STB::Argument::Argument(std::string name, DirectionType directionType, std::string relatedStateVariable, ArgumentType type)
@@ -135,21 +140,21 @@ STB::Action::Action(std::string name)
 
 void STB::Action::ShowAction() const
 {
-    std::cout << this->name << std::endl;
+    std::cout << this->name << '\n';
     std::cout << "\t\t" << "input: ";
     for(auto const& arg : this->InputParameters)
     {
         arg.ShowArgument();
         std::cout << " ";
     }
-    std::cout << std::endl;
+    std::cout << '\n';
     std::cout << "\t\t" << "output: ";
     for(auto const& arg : this->OutputParameters)
     {
         arg.ShowArgument();
         std::cout << " ";
     }
-    std::cout << std::endl;
+    std::cout << '\n';
 }
 
 void STB::Action::AddArgument(std::string name, DirectionType directionType, std::string relatedStateVariable, ArgumentType type)
@@ -198,15 +203,20 @@ bool STB::Action::Execute(std::string STBAddress, std::string STBPort, std::stri
         std::string body = MakeSOAPRequestBody(serviceType);
 
         std::string SOAPResponse = HTTPCommunicator::PostExecuteAction(serviceControlURL, STBAddress, STBPort, soapAction, body);
-        std::cout << SOAPResponse << "\n";
-        return ParseSOAPResponse(SOAPResponse); //??
+        if(SOAPResponse.empty())
+            return false;
+        else
+        {
+            ParseSOAPResponse(SOAPResponse);
+            return true;
+        }
+        
     }
     catch(const std::string& ex)
     {
         std::cerr << ex << '\n';
         return false;
-    }
-    
+    }   
 }
 
 std::string STB::Action::MakeSOAPRequestBody(std::string serviceType)
@@ -230,7 +240,7 @@ std::string STB::Action::MakeArgumentForSOAPBody()
     std::string argumentName;
     std::string argumentType;
     std::string argumentValue;
-    std::cout << "Enter arguments for the action \"" + this->GetName() +"\":\n";
+    std::cout << "Enter arguments for the action \"" + this->GetName() +"\" ('/' if the argument is not used):\n";
     for(auto const& arg : this->InputParameters)
     {
         argumentName = arg.GetName();
@@ -238,10 +248,13 @@ std::string STB::Action::MakeArgumentForSOAPBody()
         std::cout << "Argument: " + argumentName + "(" + argumentType + ")  Value: ";
         std::cin >> argumentValue;
         
-        if(this->correctArgumentType(argumentType, argumentValue))
-            arguments += "<" + argumentName +">" + argumentValue + "</" + argumentName + ">\n";
-        else
-            throw std::string("Invalid input argument!");
+        if(argumentValue.compare("/") != 0)
+        {
+            if(this->correctArgumentType(argumentType, argumentValue))
+                arguments += "<" + argumentName +">" + argumentValue + "</" + argumentName + ">\n";
+            else
+                throw std::string("Invalid input argument!");
+        }
     }
     return arguments;
 }
@@ -288,9 +301,16 @@ bool STB::Action::correctArgumentType(std::string argumentType, std::string inpu
             return false;
 }
 
-bool STB::Action::ParseSOAPResponse(std::string SOAPResponse)
+void STB::Action::ParseSOAPResponse(std::string SOAPResponse)
 {
-    return true;
+    std::string value;
+    std::cout << "### RESPONSE OK ###\n";
+    for(auto const& outArg : this->OutputParameters)
+    {
+        value = XMLParser::GetTagValue(SOAPResponse, outArg.GetName());
+        if(!value.empty())
+            std::cout << outArg.GetName() << " : " << value << '\n';
+    }
 }
 
 std::string STB::Service::GetNameOfService() const
@@ -418,5 +438,5 @@ void STB::Service::ParseActionFromXML(std::string actionXML, stateMap& stateTabl
 
 bool STB::Service::ExecuteAction(std::string STBAddress, std::string STBPort, uint actionName)
 {
-    return this->actions[actionName-1].Execute(STBAddress, STBPort, this->GetControlUrl(), this->GetType());
+    return this->actions[actionName].Execute(STBAddress, STBPort, this->GetControlUrl(), this->GetType());
 }

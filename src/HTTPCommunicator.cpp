@@ -72,6 +72,7 @@ std::string HTTPCommunicator::PostExecuteAction(std::string controlURL, std::str
     {
         size_t endLinePos = PostResponse.find("\r\n");
         std::cout << PostResponse.substr(0, endLinePos) << '\n';
+        return "";
     }
 
     return PostBodyFromResponse(PostResponse);

@@ -77,7 +77,7 @@ void Searcher::ShowDetectedSTBs() const
     int i = 1;
     for(auto const& stb : this->discoveredSTB)
     {
-        std::cout<< "\t" << i << ". " <<stb->GetFriendlyName() << "  (" << stb->GetUUID() << ")" << std::endl;
+        std::cout<< "\t" << i << ". " <<stb->GetFriendlyName() << "  (" << stb->GetUUID() << ")" << '\n';
         i++;
     }
 }
@@ -161,7 +161,7 @@ void Searcher::FilterMulticastMessage(const std::string response)
     // if(SearchSTBDescription(*newSTB))
     // {
     //     this->discoveredSTB.push_back(std::move(newSTB));
-    //     std::cout<<"New STB detected on network!"<<std::endl;
+    //     std::cout<<"New STB detected on network!"<<'\n';
     // }
 }
 

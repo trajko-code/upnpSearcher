@@ -30,7 +30,7 @@ class STB
         bool ExecuteServiceAction(uint serviceNumber, uint actionNumber);
 
         bool PairToDevice();
-        bool CheckIsPaired() const;
+        bool CheckIsPaired();
         bool SetDeviceFriendlyName(std::string fname);
         void ShowKeysName() const;
         bool SendKeyCommand(int key);
@@ -43,7 +43,7 @@ class STB
         std::string GetAddress() const { return this->address; }
         std::string GetPort() const { return this->port; }
         std::string GetXMLLocation() const { return this->configXMLLocation; }
-        std::string GetVerificationCode() { return this->verificationCode; }
+        std::string GetVerificationCode() const { return this->verificationCode; }
         int GetDetectedServicesCount() const { return this->services.size(); }
         std::string GetServiceName(int serviceNumber) const;
         uint GetServiceActionsCount(int serviceNumber) const;

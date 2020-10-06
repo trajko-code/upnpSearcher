@@ -201,10 +201,61 @@ bool STB::PairToDevice()
     }
 }
 
-bool STB::CheckIsPaired() const
+bool STB::CheckIsPaired()
 {
+    if(!this->paired)
+    {   
+        return false;
+    }
+    else if(this->GetVerificationCode().empty())
+    {
+        return false;
+    }
 
-    return false;
+    auto service = std::find_if(this->services.begin(), this->services.end(), [](Service& s) { return !s.GetNameOfService().compare(REMOTE_PAIRING_SERVICE); });
+    
+    if(service == this->services.end())
+    {
+        std::cerr << "ERROR: Service '" << REMOTE_PAIRING_SERVICE << "' is not supported!\r\n";
+        return false;
+    }
+
+    auto checkAction = std::find_if(service->actions.begin(), service->actions.end(), [](Action& a) { return !a.GetName().compare(PAIRING_CHECK_ACTION); });
+    
+    if(checkAction == service->actions.end())
+    {
+        std::cerr << "ERROR: Action '" << PAIRING_CHECK_ACTION << "' is not supported!\r\n";
+        return false;
+    }
+
+    std::string soapAction = service->GetType() + "#" + checkAction->GetName();
+    std::string argumentList = "<pairingDeviceID>" + Config::aplicationID + "</pairingDeviceID>"
+                                "<verificationCode>" + this->GetVerificationCode() + "</verificationCode>";       
+    std::string body = checkAction->MakeSOAPRequestBody(service->GetType(), argumentList);
+
+    std::string SOAPResponse = HTTPCommunicator::PostExecuteAction(service->GetControlUrl(), this->GetAddress(), this->GetPort(), soapAction, body);
+    if(SOAPResponse.empty())
+        return false;
+    else
+    {
+        std::string pairingResult = XMLParser::GetTagValue(SOAPResponse, "pairingResult");
+        if(pairingResult.compare("0") != 0)
+        {
+            this->SetVerificationCode("");
+            this->paired = false;
+            return false;
+        }
+        else
+        {
+            std::string outCode = XMLParser::GetTagValue(SOAPResponse, "outputCode");
+            if(outCode.compare("-") == 0)
+                return true;
+            
+            this->SetVerificationCode("");
+            this->paired = false;
+            return false;
+        }
+    }
 }
 
 bool STB::SetDeviceFriendlyName(std::string fname)
@@ -246,7 +297,6 @@ bool STB::SetDeviceFriendlyName(std::string fname)
         if(result.compare("0") != 0)
             return false;
         
-        std::cout << "Friendly name succesfully changed.\r\n";
         return true;
     }
 }

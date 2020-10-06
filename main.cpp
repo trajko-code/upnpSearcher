@@ -12,13 +12,17 @@ int main()
     std::string entry;
     std::string ordinalNumber;
     uint number;
-    std::string serviceEntry;
+    std::string stbEntry;
     std::string serviceNumberEntry;
     uint serviceNumber;
     std::string actionEntry;
     std::string actionNumberEntry;
     uint actionNumber;
+    std::string friendlyName;
+    std::string keyNumber;
+    int keyCode;
     bool back;
+    bool backRemoteControler;
 
     while(true)
     {
@@ -58,20 +62,60 @@ int main()
 
             back = false;
             std::cout << "Selected STB: " << stb->GetFriendlyName() << '\n';
-            std::cout << "STB services: \n";
-            stb->ShowMyServices();
             while(!back)
             {
                 std::cout << '\n' << "**STB menu**\n";
                 std::cout << "(0) Back\n";
-                std::cout << "(1) Select service\n";
+                std::cout << "(1) Device description\n";
+                std::cout << "(2) Pair to device\n";
+                std::cout << "(3) Is paired\n";
+                std::cout << "(4) Set friendly name\n";
+                std::cout << "(5) Remote Controler\n";
+                std::cout << "(6) Select service\n";
                 std::cout << "Enter number: \n";
                 std::cout << ">";
 
-                std::cin >> serviceEntry;
-                if(serviceEntry.compare("1") == 0)
+                std::cin >> stbEntry;
+                if(stbEntry.compare("1") == 0)
                 {
-                    
+                    //stb->ShowDescription();
+                }
+                else if(stbEntry.compare("2") == 0)
+                {
+                    //stb->PairToDevice(); // bool
+                }
+                else if(stbEntry.compare("3") == 0)
+                {
+                    //stb->CheckIsPaired(); //bool
+                }
+                else if(stbEntry.compare("4") == 0)
+                {
+                    std::cout << "Enter new friendly name: \n";
+                    std::cin >> friendlyName;
+                    //stb->SetDeviceFriendlyName(friendlyName);
+                }
+                else if(stbEntry.compare("5") == 0)
+                {
+                    Config::ShowKeysName();
+                    backRemoteControler = true;
+                    while(backRemoteControler)
+                    {
+                        std::cout << "Enter key number (or 0 to exit): \n";
+                        std::cin >> keyNumber;
+                        keyCode = getInt(keyNumber);
+                        if(keyCode > 0 && keyCode <= Config::keys.size())
+                            //stb->SendKeyCommand(number-1);
+                            std::cout << "!!! Success entry !!!\n";
+                        else if(keyCode == 0)
+                            backRemoteControler = false;
+                        else
+                            std::cout << "!!! Wrong entry !!!\n";
+                    }
+                }
+                else if(stbEntry.compare("6") == 0)
+                {
+                    std::cout << "Available STB services: \n";
+                    stb->ShowMyServices();
                     std::cout << "Enter the ordinal number of the service:\n";
                     std::cin >> serviceNumberEntry;
                     serviceNumber = getInt(serviceNumberEntry);
@@ -109,7 +153,7 @@ int main()
                         continue;
                     }
                 }
-                else if(serviceEntry.compare("0") == 0)
+                else if(stbEntry.compare("0") == 0)
                     back = true;
             }
         }

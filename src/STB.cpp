@@ -1,8 +1,15 @@
 #include "STB.h"
+#include "Configuration.h"
 
 #define BUFF_SIZE 1024
 #define XMLNS "schemas.xmlsoap.org/soap/envelope/"
 #define ENCODING_STYLE "schemas.xmlsoap.org/soap/encoding/"
+#define REMOTE_PAIRING_SERVICE "X-CTC_RemotePairing"
+#define PAIRING_REQUEST_ACTION "X-pairingRequest"
+#define PAIRING_CHECK_ACTION "X-pairingCheck"
+#define SET_FRIENDLY_NAME_ACTION "X-setFriendlyName"
+#define REMOTE_CONTROL_SERVICE "X-CTC_RemoteControl"
+#define REMOTE_KEY_ACTION "X-CTC_RemoteKey"
 
 STB::STB(std::string friendlyName, std::string uuid, std::string address, std::string port, std::string xmlLocation)
     :STB(uuid, address, port, xmlLocation)
@@ -13,6 +20,7 @@ STB::STB(std::string friendlyName, std::string uuid, std::string address, std::s
 STB::STB(std::string uuid, std::string address, std::string port, std::string xmlLocation)
     :uuid(uuid), address(address), port(port), configXMLLocation(xmlLocation)
 {
+    this->paired = false;
 }
 
 bool STB::GetDescription()
@@ -24,12 +32,29 @@ bool STB::GetDescription()
     if(!XMLResponse.empty())
     {
         this->SetFriendlyName(XMLParser::GetTagValue(XMLResponse, "friendlyName"));
+        this->SetDeviceType(XMLParser::GetTagValue(XMLResponse, "deviceType"));
+        this->SetManufacturer(XMLParser::GetTagValue(XMLResponse, "manufacturer"));
+        this->SetSerialNumber(XMLParser::GetTagValue(XMLResponse, "serialNumber"));
+
         FillServiceList(XMLResponse);
 
         return true;
     }
     else
         return false;
+}
+
+void STB::ShowDescription() const
+{
+    std::cout << "\n----DEVICE DESCRIPTION----\n";
+    std::cout << "Friendly name: "<< this->GetFriendlyName() << '\n';
+    std::cout << "UUID: "<< this->GetUUID() << '\n';
+    std::cout << "Address: "<< this->GetAddress() << '\n';
+    std::cout << "Port: "<< this->GetPort() << '\n';
+    std::cout << "Device type: "<< this->GetDeviceType() << '\n';
+    std::cout << "Manufacturer: "<< this->GetManufacturer() << '\n';
+    std::cout << "Serial number: "<< this->GetSerialNumber() << '\n';
+    std::cout << "Configuration XML location: "<< this->GetXMLLocation() << '\n';
 }
 
 void STB::FillServiceList(std::string XMLResponse)
@@ -77,7 +102,7 @@ void STB::ShowMyServices() const
 
 void STB::ShowServiceActions(int serviceNumber) 
 {
-    if(this->services[serviceNumber].actions.size() < 1)
+    if(this->services[serviceNumber].GetActionCount() < 1)
         this->services[serviceNumber].GetServiceDescription(this->GetAddress(), this->GetPort());
     
     this->services[serviceNumber].ShowMyActions();
@@ -93,6 +118,147 @@ void STB::SearchServiceDescription(std::string serviceName)
 bool STB::ExecuteServiceAction(uint serviceNumber, uint actionNumber)
 {
     return this->services[serviceNumber].ExecuteAction(this->GetAddress(), this->GetPort(), actionNumber);
+}
+
+bool STB::PairToDevice()
+{
+    if(this->paired && !this->GetVerificationCode().empty())
+    {
+        std::cout << "Device already paired.\r\n";
+        return true;
+    }
+    
+    auto service = std::find_if(this->services.begin(), this->services.end(), [](Service& s) { return !s.GetNameOfService().compare(REMOTE_PAIRING_SERVICE); });
+    
+    if(service != this->services.end())
+    {
+        if(service->GetActionCount() < 1)
+            service->GetServiceDescription(this->GetAddress(), this->GetPort());
+
+        auto requestAction = std::find_if(service->actions.begin(), service->actions.end(), [](Action& a) { return !a.GetName().compare(PAIRING_REQUEST_ACTION); });
+        
+        if(requestAction == service->actions.end())
+        {
+            std::cerr << "ERROR: Action '" << PAIRING_REQUEST_ACTION << "' is not supported!\r\n";
+            return false;
+        }
+
+        std::string soapAction = service->GetType() + "#" + requestAction->GetName();
+        std::string argumentList = "<pairingDeviceID>" + Config::aplicationID + "</pairingDeviceID>"
+                                    "<friendlyName>" + Config::friendlyName + "</friendlyName>";
+        std::string body = requestAction->MakeSOAPRequestBody(service->GetType(), argumentList);
+
+        std::string SOAPResponse = HTTPCommunicator::PostExecuteAction(service->GetControlUrl(), this->GetAddress(), this->GetPort(), soapAction, body);
+        if(SOAPResponse.empty())
+            return false;
+        else
+        {
+            std::string result = XMLParser::GetTagValue(SOAPResponse, "result");
+            if(result.compare("0") != 0)
+                return false;
+        }
+
+        auto checkAction = std::find_if(service->actions.begin(), service->actions.end(), [](Action& a) { return !a.GetName().compare(PAIRING_CHECK_ACTION); });
+
+        if(checkAction == service->actions.end())
+        {
+            std::cerr << "ERROR: Action '" << PAIRING_CHECK_ACTION << "' is not supported!\r\n";
+            return false;
+        }
+
+        std::string pin;
+        std::cout << "Enter PIN: ";
+        std::cin >> pin;
+
+        soapAction = service->GetType() + "#" + checkAction->GetName();
+        argumentList = "<pairingDeviceID>" + Config::aplicationID + "</pairingDeviceID>"
+                        "<verificationPIN>" + pin + "</verificationPIN>";       
+        body = requestAction->MakeSOAPRequestBody(service->GetType(), argumentList);
+
+        SOAPResponse = HTTPCommunicator::PostExecuteAction(service->GetControlUrl(), this->GetAddress(), this->GetPort(), soapAction, body);
+        if(SOAPResponse.empty())
+            return false;
+        else
+        {
+            std::string pairingResult = XMLParser::GetTagValue(SOAPResponse, "pairingResult");
+            if(pairingResult.compare("0") != 0)
+            {
+                std::cerr << "ERROR: Verification failure!\r\n";
+                return false;
+            }
+            else
+            {
+                this->SetVerificationCode(XMLParser::GetTagValue(SOAPResponse, "outputCode"));
+                this->paired = true;
+                return true;
+            }
+        }        
+    }
+    else
+    {
+        std::cerr << "ERROR: Service '" << REMOTE_PAIRING_SERVICE << "' is not supported!\r\n";
+        return false;
+    }
+}
+
+bool STB::CheckIsPaired() const
+{
+
+    return false;
+}
+
+bool STB::SetDeviceFriendlyName(std::string fname)
+{
+    if(!this->paired)
+    {   
+        std::cerr << "ERROR: Not paired with the device!\r\n";
+        return false;
+    }
+
+    auto service = std::find_if(this->services.begin(), this->services.end(), [](Service& s) { return !s.GetNameOfService().compare(REMOTE_PAIRING_SERVICE); });
+    
+    if(service == this->services.end())
+    {
+        std::cerr << "ERROR: Service '" << REMOTE_PAIRING_SERVICE << "' is not supported!\r\n";
+        return false;
+    }
+
+    auto setAction = std::find_if(service->actions.begin(), service->actions.end(), [](Action& a) { return !a.GetName().compare(SET_FRIENDLY_NAME_ACTION); });
+        
+    if(setAction == service->actions.end())
+    {
+        std::cerr << "ERROR: Action '" << SET_FRIENDLY_NAME_ACTION << "' is not supported!\r\n";
+        return false;
+    }
+
+    std::string soapAction = service->GetType() + "#" + setAction->GetName();
+    std::string argumentList = "<pairingDeviceID>" + Config::aplicationID + "</pairingDeviceID>"
+                                "<verificationCode>" + this->GetVerificationCode() + "</verificationCode>"
+                                "<stbFriendlyName>" + fname + "</stbFriendlyName>";
+    std::string body = setAction->MakeSOAPRequestBody(service->GetType(), argumentList);
+
+    std::string SOAPResponse = HTTPCommunicator::PostExecuteAction(service->GetControlUrl(), this->GetAddress(), this->GetPort(), soapAction, body);
+    if(SOAPResponse.empty())
+        return false;
+    else
+    {
+        std::string result = XMLParser::GetTagValue(SOAPResponse, "result");
+        if(result.compare("0") != 0)
+            return false;
+        
+        std::cout << "Friendly name succesfully changed.\r\n";
+        return true;
+    }
+}
+
+void STB::ShowKeysName() const
+{
+
+}
+
+bool STB::SendKeyCommand(int key)
+{
+    return false;
 }
 
 std::string STB::GetServiceName(int serviceNumber) const
@@ -200,7 +366,8 @@ bool STB::Action::Execute(std::string STBAddress, std::string STBPort, std::stri
     try
     {
         std::string soapAction = serviceType + "#" + this->GetName();
-        std::string body = MakeSOAPRequestBody(serviceType);
+        std::string argumentList = this->MakeArgumentForSOAPBody();
+        std::string body = MakeSOAPRequestBody(serviceType, argumentList);
 
         std::string SOAPResponse = HTTPCommunicator::PostExecuteAction(serviceControlURL, STBAddress, STBPort, soapAction, body);
         if(SOAPResponse.empty())
@@ -219,7 +386,7 @@ bool STB::Action::Execute(std::string STBAddress, std::string STBPort, std::stri
     }   
 }
 
-std::string STB::Action::MakeSOAPRequestBody(std::string serviceType)
+std::string STB::Action::MakeSOAPRequestBody(std::string serviceType, std::string argumentList)
 { 
     std::string body =  "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
                         //"xmlns:s=\"http://" + XMLNS + "\"\n"
@@ -227,7 +394,7 @@ std::string STB::Action::MakeSOAPRequestBody(std::string serviceType)
                         "s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">\n"
                         "<s:Body>\n"
                         "<u:" + this->GetName() + " xmlns:u=\"" +  serviceType + "\">\n" 
-                        + this->MakeArgumentForSOAPBody() +
+                        + argumentList +
                         "</u:" + this->GetName() + ">"
                         "</s:Body>\n"
                         "</s:Envelope>\n";
@@ -436,7 +603,7 @@ void STB::Service::ParseActionFromXML(std::string actionXML, stateMap& stateTabl
     this->actions.push_back(action);
 }
 
-bool STB::Service::ExecuteAction(std::string STBAddress, std::string STBPort, uint actionName)
+bool STB::Service::ExecuteAction(std::string STBAddress, std::string STBPort, uint actionNum)
 {
-    return this->actions[actionName].Execute(STBAddress, STBPort, this->GetControlUrl(), this->GetType());
+    return this->actions[actionNum].Execute(STBAddress, STBPort, this->GetControlUrl(), this->GetType());
 }

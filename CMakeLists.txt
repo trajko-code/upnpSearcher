@@ -4,7 +4,7 @@ project(upnpSearcher)
 
 set(CMAKE_CXX_STANDARD 11)
 
-set(exe_include include/Searcher.h include/STB.h include/XMLParser.h include/HTTPCommunicator.h)
+set(exe_include include/Searcher.h include/STB.h include/XMLParser.h include/HTTPCommunicator.h include/Configuration.h)
 set(exe_source src/Searcher.cpp src/STB.cpp src/XMLParser.cpp src/HTTPCommunicator.cpp)
 
 add_executable(mainUPnP main.cpp ${exe_include} ${exe_source})

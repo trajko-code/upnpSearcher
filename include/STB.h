@@ -19,6 +19,7 @@ class STB
         STB(std::string uuid, std::string address, std::string port, std::string xmlLocation);
 
         bool GetDescription();
+        void ShowDescription() const;
         void FillServiceList(std::string XMLResponse);
         
         void AddService(std::string type, std::string id, std::string controlURL, std::string eventURL, std::string descriptionURL);
@@ -28,8 +29,17 @@ class STB
 
         bool ExecuteServiceAction(uint serviceNumber, uint actionNumber);
 
+        bool PairToDevice();
+        bool CheckIsPaired() const;
+        bool SetDeviceFriendlyName(std::string fname);
+        void ShowKeysName() const;
+        bool SendKeyCommand(int key);
+
         std::string GetFriendlyName() const { return this->friendlyName; }
         std::string GetUUID() const { return this->uuid; }
+        std::string GetDeviceType() const { return this->deviceType; }
+        std::string GetManufacturer() const { return this->manufacturer; }
+        std::string GetSerialNumber() const { return this->serialNumber; }
         std::string GetAddress() const { return this->address; }
         std::string GetPort() const { return this->port; }
         std::string GetXMLLocation() const { return this->configXMLLocation; }
@@ -37,10 +47,13 @@ class STB
         int GetDetectedServicesCount() const { return this->services.size(); }
         std::string GetServiceName(int serviceNumber) const;
         uint GetServiceActionsCount(int serviceNumber) const;
-        
-        void SetFriendlyName(std::string fname) { this->friendlyName = fname; }
-        void SetVerificationCode(std::string vcode) { this->verificationCode = vcode; }
+
     private:
+        void SetFriendlyName(std::string fname) { this->friendlyName = fname; }
+        void SetDeviceType(std::string dtype) { this->deviceType = dtype; }
+        void SetManufacturer(std::string manufacturer) { this->manufacturer = manufacturer; }    
+        void SetSerialNumber(std::string snumber) { this->serialNumber = snumber; }
+        void SetVerificationCode(std::string vcode) { this->verificationCode = vcode; }
         void ParseServiceFromXML(std::string XMLservice);
 
     private:
@@ -73,7 +86,7 @@ class STB
             void ParseArgumentFromXML(std::string argumentXML, stateMap& stateTable);
 
             bool Execute(std::string STBAddress, std::string STBPort, std::string  serviceControlURL, std::string serviceType);
-            std::string MakeSOAPRequestBody(std::string serviceType);
+            std::string MakeSOAPRequestBody(std::string serviceType, std::string argumentList);
             std::string MakeArgumentForSOAPBody();
             bool correctArgumentType(std::string argumentType, std::string inputArgumentType);
             void ParseSOAPResponse(std::string SOAPResponse);
@@ -92,7 +105,7 @@ class STB
             std::string GetServiceId() const;
             std::string GetControlUrl() const { return this->controlURL; }
             std::string GetType() const { return this->type; }
-            uint GetActionNumber() const { return this->actions.size(); }
+            size_t GetActionCount() const { return this->actions.size(); }
  
             void ShowMyActions() const;
             bool GetServiceDescription(std::string STBAddress, std::string STBPort);
@@ -101,14 +114,18 @@ class STB
             std::unique_ptr<stateMap> GetStateMap(std::string XMLStateTable);
             void ParseActionFromXML(std::string serviceXML, stateMap& stateTable);
 
-            bool ExecuteAction(std::string STBAddress, std::string STBPort, uint actionName);
+            bool ExecuteAction(std::string STBAddress, std::string STBPort, uint actionNum);
         };
-        
+     
         std::string friendlyName;
         std::string uuid;
+        std::string deviceType;
+        std::string manufacturer;
+        std::string serialNumber;
         std::string address;
         std::string port;
         std::string configXMLLocation;
         std::string verificationCode;
         std::vector<Service> services;
+        bool paired;
 };

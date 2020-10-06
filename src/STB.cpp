@@ -129,7 +129,7 @@ bool STB::PairToDevice()
 {
     if(this->paired && !this->GetVerificationCode().empty())
     {
-        std::cout << "Device already paired.\r\n";
+        std::cout << "Device already paired.\n";
         return true;
     }
     
@@ -144,7 +144,7 @@ bool STB::PairToDevice()
         
         if(requestAction == service->actions.end())
         {
-            std::cout << "ERROR: Action '" << PAIRING_REQUEST_ACTION << "' is not supported!\r\n";
+            std::cout << "ERROR: Action '" << PAIRING_REQUEST_ACTION << "' is not supported!\n";
             return false;
         }
 
@@ -167,7 +167,7 @@ bool STB::PairToDevice()
 
         if(checkAction == service->actions.end())
         {
-            std::cout << "ERROR: Action '" << PAIRING_CHECK_ACTION << "' is not supported!\r\n";
+            std::cout << "ERROR: Action '" << PAIRING_CHECK_ACTION << "' is not supported!\n";
             return false;
         }
 
@@ -188,21 +188,21 @@ bool STB::PairToDevice()
             std::string pairingResult = XMLParser::GetTagValue(SOAPResponse, "pairingResult");
             if(pairingResult.compare("0") != 0)
             {
-                std::cout << "ERROR: Verification failure!\r\n";
+                std::cout << "ERROR: Verification failure!\n";
                 return false;
             }
             else
             {
                 this->SetVerificationCode(XMLParser::GetTagValue(SOAPResponse, "outputCode"));
                 this->paired = true;
-                std::cout << "Succesfully paired to device.\r\n";
+                std::cout << "Succesfully paired to device.\n";
                 return true;
             }
         }        
     }
     else
     {
-        std::cout << "ERROR: Service '" << REMOTE_PAIRING_SERVICE << "' is not supported!\r\n";
+        std::cout << "ERROR: Service '" << REMOTE_PAIRING_SERVICE << "' is not supported!\n";
         return false;
     }
 }
@@ -222,7 +222,7 @@ bool STB::CheckIsPaired()
     
     if(service == this->services.end())
     {
-        std::cout << "ERROR: Service '" << REMOTE_PAIRING_SERVICE << "' is not supported!\r\n";
+        std::cout << "ERROR: Service '" << REMOTE_PAIRING_SERVICE << "' is not supported!\n";
         return false;
     }
 
@@ -230,7 +230,7 @@ bool STB::CheckIsPaired()
     
     if(checkAction == service->actions.end())
     {
-        std::cout << "ERROR: Action '" << PAIRING_CHECK_ACTION << "' is not supported!\r\n";
+        std::cout << "ERROR: Action '" << PAIRING_CHECK_ACTION << "' is not supported!\n";
         return false;
     }
 
@@ -268,7 +268,7 @@ bool STB::SetDeviceFriendlyName(const std::string fname)
 {
     if(!this->paired)
     {   
-        std::cout << "ERROR: Not paired with the device!\r\n";
+        std::cout << "ERROR: Not paired with the device!\n";
         return false;
     }
 
@@ -276,7 +276,7 @@ bool STB::SetDeviceFriendlyName(const std::string fname)
     
     if(service == this->services.end())
     {
-        std::cout << "ERROR: Service '" << REMOTE_PAIRING_SERVICE << "' is not supported!\r\n";
+        std::cout << "ERROR: Service '" << REMOTE_PAIRING_SERVICE << "' is not supported!\n";
         return false;
     }
 
@@ -284,7 +284,7 @@ bool STB::SetDeviceFriendlyName(const std::string fname)
         
     if(setAction == service->actions.end())
     {
-        std::cout << "ERROR: Action '" << SET_FRIENDLY_NAME_ACTION << "' is not supported!\r\n";
+        std::cout << "ERROR: Action '" << SET_FRIENDLY_NAME_ACTION << "' is not supported!\n";
         return false;
     }
 
@@ -320,7 +320,7 @@ bool STB::SendKeyCommand(int key)
 {
     if(!this->paired)
     {   
-        std::cout << "ERROR: Not paired with the device!\r\n";
+        std::cout << "ERROR: Not paired with the device!\n";
         return false;
     }
 
@@ -328,7 +328,7 @@ bool STB::SendKeyCommand(int key)
 
     if(service == this->services.end())
     {
-        std::cout << "ERROR: Service '" << REMOTE_CONTROL_SERVICE << "' is not supported!\r\n";
+        std::cout << "ERROR: Service '" << REMOTE_CONTROL_SERVICE << "' is not supported!\n";
         return false;
     }
 
@@ -339,7 +339,7 @@ bool STB::SendKeyCommand(int key)
         
     if(keyAction == service->actions.end())
     {
-        std::cout << "ERROR: Action '" << REMOTE_KEY_ACTION << "' is not supported!\r\n";
+        std::cout << "ERROR: Action '" << REMOTE_KEY_ACTION << "' is not supported!\n";
         return false;
     }
 

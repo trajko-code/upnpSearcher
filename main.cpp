@@ -23,11 +23,12 @@ int main()
     int keyCode;
     bool back;
     bool backRemoteControler;
+    bool mainBack;
 
     while(true)
     {
         std::cout << "\n*Main menu*\n";
-        std::cout << "(0) Quit" << '\n';
+        std::cout << "(0) Quit\n";
         std::cout << "(1) Search STBs\n";
         std::cout << "(2) Select STB\n";
         std::cout << "Enter number:\n";
@@ -64,7 +65,7 @@ int main()
             std::cout << "Selected STB: " << stb->GetFriendlyName() << '\n';
             while(!back)
             {
-                std::cout << '\n' << "**STB menu**\n";
+                std::cout << "\n**STB menu**\n";
                 std::cout << "(0) Back\n";
                 std::cout << "(1) Device description\n";
                 std::cout << "(2) Pair to device\n";
@@ -82,15 +83,14 @@ int main()
                 }
                 else if(stbEntry.compare("2") == 0)
                 {
-                    stb->PairToDevice(); // bool
+                    stb->PairToDevice();
                 }
                 else if(stbEntry.compare("3") == 0)
                 {
                     if(stb->CheckIsPaired())
-                        std::cout << "Device is paired.\r\n";
+                        std::cout << "Device is paired.\n";
                     else
-                        std::cout << "Device is not paired.\r\n";
-                    
+                        std::cout << "Device is not paired.\n";
                 }
                 else if(stbEntry.compare("4") == 0)
                 {
@@ -131,8 +131,8 @@ int main()
                         bool endServiceMenu = false;
                         while(!endServiceMenu)
                         {
-                            std::cout << '\n' << "***Service menu***\n";
-                            std::cout << "(0) Back" << '\n';
+                            std::cout << "\n***Service menu***\n";
+                            std::cout << "(0) Back\n";
                             std::cout << "(1) Execute action\n";
                             std::cout << "Enter number:\n";
                             

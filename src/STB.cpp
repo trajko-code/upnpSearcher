@@ -83,6 +83,11 @@ void STB::ParseServiceFromXML(std::string XMLservice)
     std::string eventURL = XMLParser::GetTagValue(XMLservice, "eventSubURL");
     std::string descriptionURL = XMLParser::GetTagValue(XMLservice, "SCPDURL");
 
+    for(auto const& service : this->services)
+    {
+        if(service.id.compare(id) == 0)
+            return;
+    }
     this->AddService(type, id, controlURL, eventURL, descriptionURL);
 }
 
@@ -139,7 +144,7 @@ bool STB::PairToDevice()
         
         if(requestAction == service->actions.end())
         {
-            std::cerr << "ERROR: Action '" << PAIRING_REQUEST_ACTION << "' is not supported!\r\n";
+            std::cout << "ERROR: Action '" << PAIRING_REQUEST_ACTION << "' is not supported!\r\n";
             return false;
         }
 
@@ -162,7 +167,7 @@ bool STB::PairToDevice()
 
         if(checkAction == service->actions.end())
         {
-            std::cerr << "ERROR: Action '" << PAIRING_CHECK_ACTION << "' is not supported!\r\n";
+            std::cout << "ERROR: Action '" << PAIRING_CHECK_ACTION << "' is not supported!\r\n";
             return false;
         }
 
@@ -173,7 +178,7 @@ bool STB::PairToDevice()
         soapAction = service->GetType() + "#" + checkAction->GetName();
         argumentList = "<pairingDeviceID>" + Config::aplicationID + "</pairingDeviceID>"
                         "<verificationPIN>" + pin + "</verificationPIN>";       
-        body = requestAction->MakeSOAPRequestBody(service->GetType(), argumentList);
+        body = checkAction->MakeSOAPRequestBody(service->GetType(), argumentList);
 
         SOAPResponse = HTTPCommunicator::PostExecuteAction(service->GetControlUrl(), this->GetAddress(), this->GetPort(), soapAction, body);
         if(SOAPResponse.empty())
@@ -183,20 +188,21 @@ bool STB::PairToDevice()
             std::string pairingResult = XMLParser::GetTagValue(SOAPResponse, "pairingResult");
             if(pairingResult.compare("0") != 0)
             {
-                std::cerr << "ERROR: Verification failure!\r\n";
+                std::cout << "ERROR: Verification failure!\r\n";
                 return false;
             }
             else
             {
                 this->SetVerificationCode(XMLParser::GetTagValue(SOAPResponse, "outputCode"));
                 this->paired = true;
+                std::cout << "Succesfully paired to device.\r\n";
                 return true;
             }
         }        
     }
     else
     {
-        std::cerr << "ERROR: Service '" << REMOTE_PAIRING_SERVICE << "' is not supported!\r\n";
+        std::cout << "ERROR: Service '" << REMOTE_PAIRING_SERVICE << "' is not supported!\r\n";
         return false;
     }
 }
@@ -216,7 +222,7 @@ bool STB::CheckIsPaired()
     
     if(service == this->services.end())
     {
-        std::cerr << "ERROR: Service '" << REMOTE_PAIRING_SERVICE << "' is not supported!\r\n";
+        std::cout << "ERROR: Service '" << REMOTE_PAIRING_SERVICE << "' is not supported!\r\n";
         return false;
     }
 
@@ -224,7 +230,7 @@ bool STB::CheckIsPaired()
     
     if(checkAction == service->actions.end())
     {
-        std::cerr << "ERROR: Action '" << PAIRING_CHECK_ACTION << "' is not supported!\r\n";
+        std::cout << "ERROR: Action '" << PAIRING_CHECK_ACTION << "' is not supported!\r\n";
         return false;
     }
 
@@ -258,11 +264,11 @@ bool STB::CheckIsPaired()
     }
 }
 
-bool STB::SetDeviceFriendlyName(std::string fname)
+bool STB::SetDeviceFriendlyName(const std::string fname)
 {
     if(!this->paired)
     {   
-        std::cerr << "ERROR: Not paired with the device!\r\n";
+        std::cout << "ERROR: Not paired with the device!\r\n";
         return false;
     }
 
@@ -270,7 +276,7 @@ bool STB::SetDeviceFriendlyName(std::string fname)
     
     if(service == this->services.end())
     {
-        std::cerr << "ERROR: Service '" << REMOTE_PAIRING_SERVICE << "' is not supported!\r\n";
+        std::cout << "ERROR: Service '" << REMOTE_PAIRING_SERVICE << "' is not supported!\r\n";
         return false;
     }
 
@@ -278,7 +284,7 @@ bool STB::SetDeviceFriendlyName(std::string fname)
         
     if(setAction == service->actions.end())
     {
-        std::cerr << "ERROR: Action '" << SET_FRIENDLY_NAME_ACTION << "' is not supported!\r\n";
+        std::cout << "ERROR: Action '" << SET_FRIENDLY_NAME_ACTION << "' is not supported!\r\n";
         return false;
     }
 
@@ -297,18 +303,57 @@ bool STB::SetDeviceFriendlyName(std::string fname)
         if(result.compare("0") != 0)
             return false;
         
+        this->SetFriendlyName(fname);
+        std::cout << "Device friendly name succesfully changed!\n";
         return true;
     }
 }
 
 void STB::ShowKeysName() const
 {
-
+    int i=1;
+    for(auto const& key : Config::keys)
+        std::cout << i++ << " " << key.keyName << "    (" << key.description << ")\n";
 }
 
 bool STB::SendKeyCommand(int key)
 {
-    return false;
+    if(!this->paired)
+    {   
+        std::cout << "ERROR: Not paired with the device!\r\n";
+        return false;
+    }
+
+    auto service = std::find_if(this->services.begin(), this->services.end(), [](Service& s) { return !s.GetNameOfService().compare(REMOTE_CONTROL_SERVICE); });
+
+    if(service == this->services.end())
+    {
+        std::cout << "ERROR: Service '" << REMOTE_CONTROL_SERVICE << "' is not supported!\r\n";
+        return false;
+    }
+
+    if(service->GetActionCount() < 1)
+        service->GetServiceDescription(this->GetAddress(), this->GetPort());
+
+    auto keyAction = std::find_if(service->actions.begin(), service->actions.end(), [](Action& a) { return !a.GetName().compare(REMOTE_KEY_ACTION); });
+        
+    if(keyAction == service->actions.end())
+    {
+        std::cout << "ERROR: Action '" << REMOTE_KEY_ACTION << "' is not supported!\r\n";
+        return false;
+    }
+
+    std::string soapAction = service->GetType() + "#" + keyAction->GetName();
+    std::string argumentList = "<keyCode>keyCode=" + Config::keys[key].keyValue + "</keyCode>"
+                                "<deviceID>" + Config::aplicationID + "</deviceID>"
+                                "<verificationCode>" + this->GetVerificationCode() + "</verificationCode>";
+    std::string body = keyAction->MakeSOAPRequestBody(service->GetType(), argumentList);
+
+    std::string SOAPResponse = HTTPCommunicator::PostExecuteAction(service->GetControlUrl(), this->GetAddress(), this->GetPort(), soapAction, body);
+    if(SOAPResponse.empty())
+        return false;
+    else
+        return true;
 }
 
 std::string STB::GetServiceName(int serviceNumber) const

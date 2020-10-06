@@ -31,7 +31,7 @@ class STB
 
         bool PairToDevice();
         bool CheckIsPaired();
-        bool SetDeviceFriendlyName(std::string fname);
+        bool SetDeviceFriendlyName(const std::string fname);
         void ShowKeysName() const;
         bool SendKeyCommand(int key);
 

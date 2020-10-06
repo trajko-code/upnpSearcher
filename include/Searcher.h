@@ -31,6 +31,6 @@ class Searcher
         void FilterDiscoveryResponse(const std::string response);
         void FilterMulticastMessage(const std::string response);
 
-        std::shared_ptr<STB> CreateNewSTB(const std::string uuid, const std::string location);
+        void TryToAddNewSTB(const std::string usn, const std::string location);
         std::string GetHeaderValue(const std::string response, const std::string key);
 };

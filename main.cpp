@@ -37,7 +37,7 @@ int main()
         if(entry.compare("1") == 0)
         {
             std::cout << "Searching devices...\n";
-            cp.ClearDetectedSTBs();
+            //cp.ClearDetectedSTBs();
             if(cp.SearchBcast(MX_DELAY, SEARCH_TIME) > 0)
             {
                 std::cout << ">>>DETECTED DEVICES<<<\n";
@@ -71,32 +71,36 @@ int main()
                 std::cout << "(3) Is paired\n";
                 std::cout << "(4) Set friendly name\n";
                 std::cout << "(5) Remote Controler\n";
-                std::cout << "(6) Select service\n";
+                std::cout << "(6) Select service (advanced)\n";
                 std::cout << "Enter number: \n";
                 std::cout << ">";
 
                 std::cin >> stbEntry;
                 if(stbEntry.compare("1") == 0)
                 {
-                    //stb->ShowDescription();
+                    stb->ShowDescription();
                 }
                 else if(stbEntry.compare("2") == 0)
                 {
-                    //stb->PairToDevice(); // bool
+                    stb->PairToDevice(); // bool
                 }
                 else if(stbEntry.compare("3") == 0)
                 {
-                    //stb->CheckIsPaired(); //bool
+                    if(stb->CheckIsPaired())
+                        std::cout << "Device is paired.\r\n";
+                    else
+                        std::cout << "Device is not paired.\r\n";
+                    
                 }
                 else if(stbEntry.compare("4") == 0)
                 {
                     std::cout << "Enter new friendly name: \n";
                     std::cin >> friendlyName;
-                    //stb->SetDeviceFriendlyName(friendlyName);
+                    stb->SetDeviceFriendlyName(friendlyName);
                 }
                 else if(stbEntry.compare("5") == 0)
                 {
-                    Config::ShowKeysName();
+                    stb->ShowKeysName();
                     backRemoteControler = true;
                     while(backRemoteControler)
                     {
@@ -104,8 +108,7 @@ int main()
                         std::cin >> keyNumber;
                         keyCode = getInt(keyNumber);
                         if(keyCode > 0 && keyCode <= Config::keys.size())
-                            //stb->SendKeyCommand(number-1);
-                            std::cout << "!!! Success entry !!!\n";
+                            stb->SendKeyCommand(keyCode-1);
                         else if(keyCode == 0)
                             backRemoteControler = false;
                         else

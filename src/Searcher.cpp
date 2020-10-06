@@ -84,7 +84,7 @@ void Searcher::ShowDetectedSTBs() const
 
 void Searcher::ClearDetectedSTBs()
 {
-    if(this->discoveredSTB.size() > 0 )
+    if(this->discoveredSTB.size() > 0 )  
         this->discoveredSTB.clear();
 }
 
@@ -112,14 +112,8 @@ void Searcher::FilterDiscoveryResponse(const std::string response)
     std::string usn = GetHeaderValue(response, "USN");
     if(usn.empty())
         return;
-    
-    //da li izvuci u novu funkciju koja proverava da li se nalazi uuid u vektoru?
-    std::string uuid = usn.substr(5, 36);   
-    for(auto const &stb : this->discoveredSTB)
-        if(stb->GetUUID().compare(uuid) == 0)
-            return;
-    
-    this->discoveredSTB.push_back(this->CreateNewSTB(uuid, location));
+       
+    this->TryToAddNewSTB(usn, location);
 }
 
 void Searcher::FilterMulticastMessage(const std::string response)
@@ -165,8 +159,9 @@ void Searcher::FilterMulticastMessage(const std::string response)
     // }
 }
 
-std::shared_ptr<STB> Searcher::CreateNewSTB(const std::string uuid, const std::string location)
+void Searcher::TryToAddNewSTB(const std::string usn, const std::string location)
 {
+    std::string uuid = usn.substr(5, 36);
     unsigned short addrBegin = location.find('/') + 2;
     unsigned short portBegin = addrBegin + 16;
     unsigned short xmlBegin = location.find('/', portBegin);
@@ -174,7 +169,13 @@ std::shared_ptr<STB> Searcher::CreateNewSTB(const std::string uuid, const std::s
     std::string port = location.substr(portBegin, xmlBegin - portBegin);
     std::string xmlLoc = location.substr(xmlBegin, location.length() - xmlBegin);
 
-    return std::shared_ptr<STB>(new STB(uuid, address, port, xmlLoc));
+    for(auto const &stb : this->discoveredSTB)
+        if(stb->GetUUID().compare(uuid) == 0)
+            return;
+        else if(stb->GetAddress().compare(address) == 0) //pri promeni frendlyName kreira se novi rootdevice sa 1 servisom bez akcija na istoj adresi
+            return;
+    
+    this->discoveredSTB.push_back(std::make_shared<STB>(uuid, address, port, xmlLoc));
 }
 
 std::shared_ptr<STB> Searcher::GetSTB(int ordinalNumber)

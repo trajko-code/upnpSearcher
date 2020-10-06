@@ -9,9 +9,9 @@ namespace Config
         std::string keyValue;
         std::string description;
     };
-    std::string friendlyName = "upnpSearcher";
-    std::string aplicationID = "1234";
-    std::vector<Key> keys = { {"KEY_IP_POWER", "0x0100", "After a subscriber presses this key." },
+    static std::string friendlyName = "upnpSearcher";
+    static std::string aplicationID = "1234";
+    static std::vector<Key> keys = { {"KEY_IP_POWER", "0x0100", "Power on/off" },
                                 {"KEY_MUTE", "0x0105", "This key is used to set the mute mode." },
                                 {"KEY_1", "0x0031" , "1" },
                                 {"KEY_2", "0x0032" , "2" },
@@ -56,11 +56,4 @@ namespace Config
                                 {"KEY_HELP", "0x011C" , "Help" },
                                 {"KEY_SEARCH", "0x0451" , "This key is used to search programs." },
                                 {"KEY_SIGNAL_CHECK", "0x0083" , "Check signal reception" } };
-
-    void ShowKeysName()
-    {
-        int i=1;
-        for(auto const& key : keys)
-            std::cout << i++ << " " << key.keyName << "    (" << key.description << ")\n";
-    }
 }

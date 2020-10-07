@@ -2,6 +2,7 @@
 
 #include <string>
 #include "MySocket.h"
+#include "InOut.h"
 
 #define USER_AGENT "Linux/20.04 UPnP/2.0 upnpSearcher/1.0"
 

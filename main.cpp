@@ -1,15 +1,19 @@
 #include "Searcher.h"
 #include "Configuration.h"
+#include "InOut.h"
 
 #define MX_DELAY "2"
 #define SEARCH_TIME 2
 
 int getInt(std::string input);
+void printMainMenu();
+void printSTBMenu();
+void printServiceMenu();
 
 int main()
 {
     Searcher cp(Config::friendlyName);
-    std::string entry;
+    //std::string entry;
     std::string ordinalNumber;
     uint number;
     std::string stbEntry;
@@ -23,79 +27,77 @@ int main()
     int keyCode;
     bool back;
     bool backRemoteControler;
-    bool mainBack;
 
     while(true)
     {
-        std::cout << "\n*Main menu*\n";
-        std::cout << "(0) Quit\n";
-        std::cout << "(1) Search STBs\n";
-        std::cout << "(2) Select STB\n";
-        std::cout << "Enter number:\n";
-        std::cout << ">";
+        printMainMenu();
 
-        std::cin >> entry;
+        std::string entry;
+        if(!InOut::In(entry))
+        {
+            InOut::Out("FATAL ERROR: cin error!\n");
+            return -1;
+        }   
+        
         if(entry.compare("1") == 0)
         {
-            std::cout << "Searching devices...\n";
+            InOut::Out("Searching devices...\n");
             //cp.ClearDetectedSTBs();
             if(cp.SearchBcast(MX_DELAY, SEARCH_TIME) > 0)
             {
-                std::cout << ">>>DETECTED DEVICES<<<\n";
+                InOut::Out(">>>DETECTED DEVICES<<<\n");
                 cp.ShowDetectedSTBs();
             }
             else
-                std::cout<<"No STB detected.\n";
+                InOut::Out("No STB detected.\n");
         }
         else if(entry.compare("2") == 0)
         {
             std::shared_ptr<STB> stb;
-            std::cout << "Enter the ordinal number of the device:\n";
-            std::cin >> ordinalNumber;
+            InOut::Out("Enter the ordinal number of the device:\n");
+            InOut::In(ordinalNumber);
             number = getInt(ordinalNumber);
             if(number > 0 && number <= cp.GetDetectedSTBsCount())
                 stb = cp.GetSTB(number - 1);
             else
             {
-                std::cout << "!!! Wrong entry !!!\n";
+                InOut::Out("!!! Wrong entry !!!\n");
                 continue;
             }
 
             back = false;
-            std::cout << "Selected STB: " << stb->GetFriendlyName() << '\n';
+            InOut::Out("Selected STB: " + stb->GetFriendlyName() + '\n');
             while(!back)
             {
-                std::cout << "\n**STB menu**\n";
-                std::cout << "(0) Back\n";
-                std::cout << "(1) Device description\n";
-                std::cout << "(2) Pair to device\n";
-                std::cout << "(3) Is paired\n";
-                std::cout << "(4) Set friendly name\n";
-                std::cout << "(5) Remote Controler\n";
-                std::cout << "(6) Select service (advanced)\n";
-                std::cout << "Enter number: \n";
-                std::cout << ">";
+                printSTBMenu();
 
-                std::cin >> stbEntry;
+                InOut::In(stbEntry);
                 if(stbEntry.compare("1") == 0)
                 {
                     stb->ShowDescription();
                 }
                 else if(stbEntry.compare("2") == 0)
                 {
-                    stb->PairToDevice();
+                    //stb->PairToDevice();
+                    if(stb->SendPairingRequest())
+                    {
+                        std::string pin;
+                        InOut::Out("Enter PIN: ");
+                        InOut::In(pin);
+                        stb->SendPairingCheck(pin);
+                    }
                 }
                 else if(stbEntry.compare("3") == 0)
                 {
                     if(stb->CheckIsPaired())
-                        std::cout << "Device is paired.\n";
+                        InOut::Out("Device is paired.\n");
                     else
-                        std::cout << "Device is not paired.\n";
+                        InOut::Out("Device is not paired.\n");
                 }
                 else if(stbEntry.compare("4") == 0)
                 {
-                    std::cout << "Enter new friendly name: \n";
-                    std::cin >> friendlyName;
+                    InOut::Out("Enter new friendly name: \n");
+                    InOut::In(friendlyName);
                     stb->SetDeviceFriendlyName(friendlyName);
                 }
                 else if(stbEntry.compare("5") == 0)
@@ -104,44 +106,41 @@ int main()
                     backRemoteControler = true;
                     while(backRemoteControler)
                     {
-                        std::cout << "Enter key number (or 0 to exit): \n";
-                        std::cin >> keyNumber;
+                        InOut::Out("Enter key number (or 0 to exit): \n");
+                        InOut::In(keyNumber);
                         keyCode = getInt(keyNumber);
                         if(keyCode > 0 && keyCode <= Config::keys.size())
                             stb->SendKeyCommand(keyCode-1);
                         else if(keyCode == 0)
                             backRemoteControler = false;
                         else
-                            std::cout << "!!! Wrong entry !!!\n";
+                            InOut::Out("!!! Wrong entry !!!\n");
                     }
                 }
                 else if(stbEntry.compare("6") == 0)
                 {
-                    std::cout << "Available STB services: \n";
+                    InOut::Out("Available STB services: \n");
                     stb->ShowMyServices();
-                    std::cout << "Enter the ordinal number of the service:\n";
-                    std::cin >> serviceNumberEntry;
+                    InOut::Out("Enter the ordinal number of the service:\n");
+                    InOut::In(serviceNumberEntry);
                     serviceNumber = getInt(serviceNumberEntry);
                     if(serviceNumber > 0 && serviceNumber <= stb->GetDetectedServicesCount())
                     {
-                        std::cout << "Selected service: " << stb->GetServiceName(serviceNumber - 1) << '\n';
-                        std::cout << "Service actions: \n";
+                        InOut::Out("Selected service: " + stb->GetServiceName(serviceNumber - 1) + '\n');
+                        InOut::Out("Service actions: \n");
                         stb->ShowServiceActions(serviceNumber - 1);
 
                         bool endServiceMenu = false;
                         while(!endServiceMenu)
                         {
-                            std::cout << "\n***Service menu***\n";
-                            std::cout << "(0) Back\n";
-                            std::cout << "(1) Execute action\n";
-                            std::cout << "Enter number:\n";
+                            printServiceMenu();
                             
-                            std::cin >> actionEntry;
+                            InOut::In(actionEntry);
                             if(actionEntry.compare("1") == 0)
                             {
                                 
-                                std::cout << "Enter the ordinal number of the action:\n";
-                                std::cin >> actionNumberEntry;
+                                InOut::Out("Enter the ordinal number of the action:\n");
+                                InOut::In(actionNumberEntry);
                                 actionNumber = getInt(actionNumberEntry);
                                 if(actionNumber > 0 && actionNumber <= stb->GetServiceActionsCount(serviceNumber-1))
                                     stb->ExecuteServiceAction(serviceNumber-1, actionNumber-1);
@@ -152,7 +151,7 @@ int main()
                     }
                     else
                     {
-                        std::cout << "!!! Wrong entry !!!\n";
+                        InOut::Out("!!! Wrong entry !!!\n");
                         continue;
                     }
                 }
@@ -163,7 +162,7 @@ int main()
         else if(entry.compare("0") == 0)
             break;
         else
-            std::cout << "!!! Wrong entry !!!\n";
+            InOut::Out("!!! Wrong entry !!!\n");
     }
 
     return 0;
@@ -180,4 +179,40 @@ int getInt(std::string input)
         return -1;
     }
     
+}
+
+void printMainMenu()
+{
+    std::string mainMenu = "\n*Main menu*\n"
+                        "(0) Quit\n"
+                        "(1) Search STBs\n"
+                        "(2) Select STB\n"
+                        "Enter number:\n"
+                        ">";
+    InOut::Out(mainMenu);
+}
+
+void printSTBMenu()
+{
+    std::string STBMenu = "\n**STB menu**\n"
+                        "(0) Back\n"
+                        "(1) Device description\n"
+                        "(2) Pair to device\n"
+                        "(3) Is paired\n"
+                        "(4) Set friendly name\n"
+                        "(5) Remote Controler\n"
+                        "(6) Select service (advanced)\n"
+                        "Enter number: \n"
+                        ">";
+    InOut::Out(STBMenu);
+}
+
+void printServiceMenu()
+{
+    std::string serviceMenu = "\n***Service menu***\n"
+                            "(0) Back\n"
+                            "(1) Execute action\n"
+                            "Enter number:\n"
+                            ">";
+    InOut::Out(serviceMenu);
 }

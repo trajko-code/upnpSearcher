@@ -77,7 +77,7 @@ void Searcher::ShowDetectedSTBs() const
     int i = 1;
     for(auto const& stb : this->discoveredSTB)
     {
-        std::cout<< "\t" << i << ". " <<stb->GetFriendlyName() << "  (" << stb->GetUUID() << ")" << '\n';
+        InOut::Out("\t" + std::to_string(i) + ". " + stb->GetFriendlyName() + "  (" + stb->GetUUID() + ")\n");
         i++;
     }
 }

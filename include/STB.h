@@ -1,4 +1,3 @@
-#include <iostream> 
 #include <string>
 #include <vector>
 #include <map>
@@ -6,6 +5,7 @@
 #include "MySocket.h"
 #include "XMLParser.h"
 #include "HTTPCommunicator.h"
+#include "InOut.h"
 
 enum class DirectionType { IN, OUT };
 enum class ArgumentType { INT, FLOAT, CHAR, STRING, BOOLEAN, I4, UNKNOWN };
@@ -30,6 +30,8 @@ class STB
         bool ExecuteServiceAction(uint serviceNumber, uint actionNumber);
 
         bool PairToDevice();
+        bool SendPairingRequest();
+        bool SendPairingCheck(const std::string pin);
         bool CheckIsPaired();
         bool SetDeviceFriendlyName(const std::string fname);
         void ShowKeysName() const;

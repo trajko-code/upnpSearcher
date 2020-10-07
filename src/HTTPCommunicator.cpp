@@ -1,5 +1,4 @@
 #include "HTTPCommunicator.h"
-#include <iostream>
 
 #define BUFF_SIZE 1024
 
@@ -71,7 +70,7 @@ std::string HTTPCommunicator::PostExecuteAction(std::string controlURL, std::str
     if(pos == std::string::npos)
     {
         size_t endLinePos = PostResponse.find("\r\n");
-        std::cout << PostResponse.substr(0, endLinePos) << '\n';
+        InOut::Out(PostResponse.substr(0, endLinePos) + '\n');
         return "";
     }
 

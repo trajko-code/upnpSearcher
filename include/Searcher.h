@@ -1,8 +1,8 @@
 #include <string>
-#include <iostream>
 #include <list>
 #include "MySocket.h"
 #include "STB.h"
+#include "InOut.h"
 
 #define ALIVE "ssdp:alive"
 #define BYEBYE "ssdp:byebye"

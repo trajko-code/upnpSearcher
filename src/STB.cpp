@@ -46,15 +46,15 @@ bool STB::GetDescription()
 
 void STB::ShowDescription() const
 {
-    std::cout << "\n----DEVICE DESCRIPTION----\n";
-    std::cout << "Friendly name: "<< this->GetFriendlyName() << '\n';
-    std::cout << "UUID: "<< this->GetUUID() << '\n';
-    std::cout << "Address: "<< this->GetAddress() << '\n';
-    std::cout << "Port: "<< this->GetPort() << '\n';
-    std::cout << "Device type: "<< this->GetDeviceType() << '\n';
-    std::cout << "Manufacturer: "<< this->GetManufacturer() << '\n';
-    std::cout << "Serial number: "<< this->GetSerialNumber() << '\n';
-    std::cout << "Configuration XML location: "<< this->GetXMLLocation() << '\n';
+    InOut::Out("\n----DEVICE DESCRIPTION----\n");
+    InOut::Out("Friendly name: " + this->GetFriendlyName() + '\n');
+    InOut::Out("UUID: " + this->GetUUID() + '\n');
+    InOut::Out("Address: " + this->GetAddress() + '\n');
+    InOut::Out("Port: " + this->GetPort() + '\n');
+    InOut::Out("Device type: " + this->GetDeviceType() + '\n');
+    InOut::Out("Manufacturer: " + this->GetManufacturer() + '\n');
+    InOut::Out("Serial number: " + this->GetSerialNumber() + '\n');
+    InOut::Out("Configuration XML location: " + this->GetXMLLocation() + '\n');
 }
 
 void STB::FillServiceList(std::string XMLResponse)
@@ -101,7 +101,7 @@ void STB::ShowMyServices() const
     int i = 1;
     for(auto &service : this->services)
     {
-        std::cout << "\t" << i++ << ". " << service.GetNameOfService() << " : " << service.GetVersionOfService() << '\n';
+        InOut::Out("\t" + std::to_string(i++) + ". " + service.GetNameOfService() + " : " + service.GetVersionOfService() + '\n');
     }
 }
 
@@ -131,7 +131,7 @@ std::string STB::ExecuteServiceAction(std::string serviceName, std::string actio
     
     if(service == this->services.end())
     {
-        std::cout << "ERROR: Service '" << serviceName << "' is not supported!\n";
+        InOut::Out("ERROR: Service '" + serviceName + "' is not supported!\n");
         return "";
     }
 
@@ -142,7 +142,7 @@ std::string STB::ExecuteServiceAction(std::string serviceName, std::string actio
     
     if(action == service->actions.end())
     {
-        std::cout << "ERROR: Action '" << actionName << "' is not supported!\n";
+        InOut::Out("ERROR: Action '" + actionName + "' is not supported!\n");
         return "";
     }
 
@@ -156,14 +156,14 @@ bool STB::PairToDevice()
 {
     if(this->paired && !this->GetVerificationCode().empty())
     {
-        std::cout << "Device already paired.\n";
+        InOut::Out("Device already paired.\n");
         return true;
     }
     
     std::string argumentList = "<pairingDeviceID>" + Config::aplicationID + "</pairingDeviceID>"
                                 "<friendlyName>" + Config::friendlyName + "</friendlyName>";
 
-    std::string SOAPResponse = ExecuteServiceAction(REMOTE_PAIRING_SERVICE, PAIRING_REQUEST_ACTION, argumentList);
+    std::string SOAPResponse = this->ExecuteServiceAction(REMOTE_PAIRING_SERVICE, PAIRING_REQUEST_ACTION, argumentList);
 
     if(SOAPResponse.empty())
         return false;
@@ -173,13 +173,13 @@ bool STB::PairToDevice()
         return false;
 
     std::string pin;
-    std::cout << "Enter PIN: ";
-    std::cin >> pin;
+    InOut::Out("Enter PIN: ");
+    InOut::In(pin);
 
     argumentList = "<pairingDeviceID>" + Config::aplicationID + "</pairingDeviceID>"
                     "<verificationPIN>" + pin + "</verificationPIN>";
 
-    SOAPResponse = ExecuteServiceAction(REMOTE_PAIRING_SERVICE, PAIRING_CHECK_ACTION, argumentList);
+    SOAPResponse = this->ExecuteServiceAction(REMOTE_PAIRING_SERVICE, PAIRING_CHECK_ACTION, argumentList);
 
     if(SOAPResponse.empty())
         return false;
@@ -187,14 +187,62 @@ bool STB::PairToDevice()
     std::string pairingResult = XMLParser::GetTagValue(SOAPResponse, "pairingResult");
     if(pairingResult.compare("0") != 0)
     {
-        std::cout << "ERROR: Verification failure!\n";
+        InOut::Out("ERROR: Verification failure!\n");
         return false;
     }
     else
     {
         this->SetVerificationCode(XMLParser::GetTagValue(SOAPResponse, "outputCode"));
         this->paired = true;
-        std::cout << "Succesfully paired to device.\n";
+        InOut::Out("Succesfully paired to device.\n");
+        return true;
+    }
+}
+
+bool STB::SendPairingRequest()
+{
+    if(this->paired && !this->GetVerificationCode().empty())
+    {
+        InOut::Out("Device already paired.\n");
+        return false;
+    }
+    
+    std::string argumentList = "<pairingDeviceID>" + Config::aplicationID + "</pairingDeviceID>"
+                                "<friendlyName>" + Config::friendlyName + "</friendlyName>";
+
+    std::string SOAPResponse = this->ExecuteServiceAction(REMOTE_PAIRING_SERVICE, PAIRING_REQUEST_ACTION, argumentList);
+
+    if(SOAPResponse.empty())
+        return false;
+ 
+    std::string result = XMLParser::GetTagValue(SOAPResponse, "result");
+    if(result.compare("0") != 0)
+        return false;
+    
+    return true;
+}
+
+bool STB::SendPairingCheck(const std::string pin)
+{
+    std::string argumentList = "<pairingDeviceID>" + Config::aplicationID + "</pairingDeviceID>"
+                    "<verificationPIN>" + pin + "</verificationPIN>";
+
+    std::string SOAPResponse = this->ExecuteServiceAction(REMOTE_PAIRING_SERVICE, PAIRING_CHECK_ACTION, argumentList);
+
+    if(SOAPResponse.empty())
+        return false;
+
+    std::string pairingResult = XMLParser::GetTagValue(SOAPResponse, "pairingResult");
+    if(pairingResult.compare("0") != 0)
+    {
+        InOut::Out("ERROR: Verification failure!\n");
+        return false;
+    }
+    else
+    {
+        this->SetVerificationCode(XMLParser::GetTagValue(SOAPResponse, "outputCode"));
+        this->paired = true;
+        InOut::Out("Succesfully paired to device.\n");
         return true;
     }
 }
@@ -209,7 +257,7 @@ bool STB::CheckIsPaired()
     std::string argumentList = "<pairingDeviceID>" + Config::aplicationID + "</pairingDeviceID>"
                                 "<verificationCode>" + this->GetVerificationCode() + "</verificationCode>";       
 
-    std::string SOAPResponse = ExecuteServiceAction(REMOTE_PAIRING_SERVICE, PAIRING_CHECK_ACTION, argumentList);
+    std::string SOAPResponse = this->ExecuteServiceAction(REMOTE_PAIRING_SERVICE, PAIRING_CHECK_ACTION, argumentList);
 
     if(SOAPResponse.empty())
         return false;
@@ -231,7 +279,7 @@ bool STB::SetDeviceFriendlyName(const std::string fname)
 {
     if(!this->paired)
     {   
-        std::cout << "ERROR: Not paired with the device!\n";
+        InOut::Out("ERROR: Not paired with the device!\n");
         return false;
     }
 
@@ -239,7 +287,7 @@ bool STB::SetDeviceFriendlyName(const std::string fname)
                                 "<verificationCode>" + this->GetVerificationCode() + "</verificationCode>"
                                 "<stbFriendlyName>" + fname + "</stbFriendlyName>";
 
-    std::string SOAPResponse = ExecuteServiceAction(REMOTE_PAIRING_SERVICE, SET_FRIENDLY_NAME_ACTION, argumentList);
+    std::string SOAPResponse = this->ExecuteServiceAction(REMOTE_PAIRING_SERVICE, SET_FRIENDLY_NAME_ACTION, argumentList);
 
     if(SOAPResponse.empty())
         return false;
@@ -249,7 +297,7 @@ bool STB::SetDeviceFriendlyName(const std::string fname)
         return false;
     
     this->SetFriendlyName(fname);
-    std::cout << "Device friendly name succesfully changed!\n";
+    InOut::Out("Device friendly name succesfully changed!\n");
     return true;
 }
 
@@ -257,14 +305,14 @@ void STB::ShowKeysName() const
 {
     int i=1;
     for(auto const& key : Config::keys)
-        std::cout << i++ << " " << key.keyName << "    (" << key.description << ")\n";
+        InOut::Out(std::to_string(i++) + " " + key.keyName + "    (" + key.description + ")\n");
 }
 
 bool STB::SendKeyCommand(int key)
 {
     if(!this->paired)
     {   
-        std::cout << "ERROR: Not paired with the device!\n";
+        InOut::Out("ERROR: Not paired with the device!\n");
         return false;
     }
 
@@ -272,7 +320,7 @@ bool STB::SendKeyCommand(int key)
                                 "<deviceID>" + Config::aplicationID + "</deviceID>"
                                 "<verificationCode>" + this->GetVerificationCode() + "</verificationCode>";
 
-    std::string SOAPResponse = ExecuteServiceAction(REMOTE_CONTROL_SERVICE, REMOTE_KEY_ACTION, argumentList);
+    std::string SOAPResponse = this->ExecuteServiceAction(REMOTE_CONTROL_SERVICE, REMOTE_KEY_ACTION, argumentList);
 
     return !SOAPResponse.empty();
 }
@@ -294,7 +342,7 @@ STB::Argument::Argument(std::string name, DirectionType directionType, std::stri
 
 void STB::Argument::ShowArgument() const
 {
-    std::cout << "{ " << this->name << " " <<  this->GetTypeString() << " }";
+    InOut::Out("{ " + this->name + " " + this->GetTypeString() + " }");
 }
 
 std::string STB::Argument::GetTypeString() const
@@ -322,21 +370,20 @@ STB::Action::Action(std::string name)
 
 void STB::Action::ShowAction() const
 {
-    std::cout << this->name << '\n';
-    std::cout << "\t\t" << "input: ";
+    InOut::Out(this->name + '\n');
+    InOut::Out("\t\tinput: ");
     for(auto const& arg : this->InputParameters)
     {
         arg.ShowArgument();
-        std::cout << " ";
+        InOut::Out(" ");
     }
-    std::cout << '\n';
-    std::cout << "\t\t" << "output: ";
+    InOut::Out("\n\t\toutput: ");
     for(auto const& arg : this->OutputParameters)
     {
         arg.ShowArgument();
-        std::cout << " ";
+        InOut::Out(" ");
     }
-    std::cout << '\n';
+    InOut::Out("\n");
 }
 
 void STB::Action::AddArgument(std::string name, DirectionType directionType, std::string relatedStateVariable, ArgumentType type)
@@ -423,13 +470,13 @@ std::string STB::Action::MakeArgumentForSOAPBody()
     std::string argumentName;
     std::string argumentType;
     std::string argumentValue;
-    std::cout << "Enter arguments for the action \"" + this->GetName() +"\" ('/' if the argument is not used):\n";
+    InOut::Out("Enter arguments for the action \"" + this->GetName() + "\" ('/' if the argument is not used):\n");
     for(auto const& arg : this->InputParameters)
     {
         argumentName = arg.GetName();
         argumentType = arg.GetTypeString();
-        std::cout << "Argument: " + argumentName + "(" + argumentType + ")  Value: ";
-        std::cin >> argumentValue;
+        InOut::Out("Argument: " + argumentName + "(" + argumentType + ")  Value: ");
+        InOut::In(argumentValue);
         
         if(argumentValue.compare("/") != 0)
         {
@@ -487,12 +534,12 @@ bool STB::Action::correctArgumentType(std::string argumentType, std::string inpu
 void STB::Action::ParseSOAPResponse(std::string SOAPResponse)
 {
     std::string value;
-    std::cout << "### RESPONSE OK ###\n";
+    InOut::Out("### RESPONSE OK ###\n");
     for(auto const& outArg : this->OutputParameters)
     {
         value = XMLParser::GetTagValue(SOAPResponse, outArg.GetName());
         if(!value.empty())
-            std::cout << outArg.GetName() << " : " << value << '\n';
+            InOut::Out(outArg.GetName() + " : " + value + '\n');
     }
 }
 
@@ -520,7 +567,7 @@ void STB::Service::ShowMyActions() const
     uint i = 1;
     for(auto const& action : this->actions)
     {
-        std::cout<< "\t" << i++ << ". ";
+        InOut::Out("\t" + std::to_string(i++) + ". ");
         action.ShowAction();
     }
 }

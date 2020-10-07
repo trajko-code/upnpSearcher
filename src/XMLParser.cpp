@@ -1,5 +1,4 @@
 #include "XMLParser.h"
-#include "iostream"
 
 std::string XMLParser::GetTagValue(const std::string xmlMessage, std::string tagName)
 {

@@ -56,6 +56,8 @@ class STB
         void SetVerificationCode(std::string vcode) { this->verificationCode = vcode; }
         void ParseServiceFromXML(std::string XMLservice);
 
+        std::string ExecuteServiceAction(std::string serviceName, std::string actionName, std::string argumentList);
+
     private:
         struct Argument
         {

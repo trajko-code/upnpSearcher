@@ -335,14 +335,34 @@ uint STB::GetServiceActionsCount(int serviceNumber) const
     return this->services[serviceNumber].actions.size();
 }
 
-STB::Argument::Argument(std::string name, DirectionType directionType, std::string relatedStateVariable, ArgumentType type)
-    :name(name), directionType(directionType), relatedStateVariable(relatedStateVariable), type(type)
+STB::Argument::Argument(std::string name, DirectionType directionType, std::string relatedStateVariable, ArgumentType type, std::string defaultValue, 
+                        bool sendEvents, std::vector<std::string> allowedList, struct AllowedValueRange valueRange)
+    :name(name), directionType(directionType), relatedStateVariable(relatedStateVariable), type(type), defaultValue(defaultValue), sendEvents(sendEvents),
+    allowedValueList(allowedList), valueRange(valueRange)
 {
 }
 
 void STB::Argument::ShowArgument() const
 {
-    InOut::Out("{ " + this->name + " " + this->GetTypeString() + " }");
+    InOut::Out("{" + this->name + " " + this->GetTypeString() + " events:" + (this->sendEvents?"yes":"no") + "}");
+}
+
+std::string STB::Argument::GetAdditionalInfo() const
+{
+    std::string info;
+    if(!this->GetDefaultValue().empty())
+        info += "Default value: " + this->GetDefaultValue() + " ";
+    if(this->allowedValueList.size() > 0)
+    {
+        info += "Allowed values ( ";
+        for(auto const& value : this->allowedValueList)
+            info += value + " ";
+        info += ")";
+    }
+    if(!this->valueRange.minimum.empty())
+        info += "Value range: minimum - " + this->valueRange.minimum + " maximum - " + this->valueRange.maximum + "step - " + this->valueRange.step;
+    info += "\n";
+    return info;
 }
 
 std::string STB::Argument::GetTypeString() const
@@ -361,6 +381,59 @@ std::string STB::Argument::GetTypeString() const
         return "boolean";
     else
         return "";
+}
+
+bool STB::Argument::CorrectType(std::string inputValue) const
+{
+    if(this->type == ArgumentType::STRING)
+            return true;
+    else if(this->type == ArgumentType::INT || this->type == ArgumentType::I4) 
+    {
+        try
+        {
+            int type = std::stoi(inputValue);
+            return true;
+        }
+        catch(...)
+        {
+            return false;
+        }
+    }
+    else if(this->type == ArgumentType::FLOAT)
+    {
+        try
+        {
+            float type = std::stof(inputValue);
+            return true;
+        }
+        catch(...)
+        {
+            return false;
+        }
+    }
+    else if(this->type == ArgumentType::CHAR)
+        return inputValue.length() == 1;
+    else if(this->type == ArgumentType::BOOLEAN)
+    {
+        return inputValue.compare("true") == 0 || inputValue.compare("TRUE") == 0 
+                || inputValue.compare("false") == 0 || inputValue.compare("FALSE") == 0 
+                || inputValue.compare("yes") == 0 || inputValue.compare("YES") == 0
+                || inputValue.compare("no") == 0 || inputValue.compare("NO") == 0
+                || inputValue.compare("0") == 0 || inputValue.compare("1") == 0;
+    }
+    else
+        return false;
+}
+
+bool STB::Argument::CorrectValue(std::string inputValue) const
+{
+    if(this->allowedValueList.size() > 0)
+    {
+        auto allowedValue = std::find_if(this->allowedValueList.begin(), this->allowedValueList.end(), [&inputValue](const std::string& value) { return !value.compare(inputValue); });
+        if(allowedValue == this->allowedValueList.end())
+            return false;
+    }
+    return true;
 }
 
 STB::Action::Action(std::string name)
@@ -386,10 +459,9 @@ void STB::Action::ShowAction() const
     InOut::Out("\n");
 }
 
-void STB::Action::AddArgument(std::string name, DirectionType directionType, std::string relatedStateVariable, ArgumentType type)
+void STB::Action::AddArgument(Argument& argument)
 {
-    Argument argument(name, directionType, relatedStateVariable, type);
-    if(directionType == DirectionType::IN)
+    if(argument.directionType == DirectionType::IN)
         this->InputParameters.push_back(argument);
     else
         this->OutputParameters.push_back(argument);
@@ -419,9 +491,12 @@ void STB::Action::ParseArgumentFromXML(std::string argumentXML, stateMap& stateT
     DirectionType direction = XMLParser::GetTagValue(argumentXML, "direction").compare("in") == 0 ? DirectionType::IN : DirectionType::OUT;
     std::string relatedStateVariable = XMLParser::GetTagValue(argumentXML, "relatedStateVariable");
 
-    ArgumentType type = stateTable[relatedStateVariable];
-        
-    this->AddArgument(name, direction, relatedStateVariable, type);
+    ArgumentDataFromTable argData = stateTable[relatedStateVariable];
+
+    Argument newArgument(name, direction, relatedStateVariable, argData.type, argData.defaultValue, argData.sendEvents,
+                         argData.allowedValueList, Argument::AllowedValueRange{argData.min, argData.max, argData.step});
+
+    this->AddArgument(newArgument);
 }
 
 bool STB::Action::Execute(std::string STBAddress, std::string STBPort, std::string  serviceControlURL, std::string serviceType)
@@ -475,60 +550,18 @@ std::string STB::Action::MakeArgumentForSOAPBody()
     {
         argumentName = arg.GetName();
         argumentType = arg.GetTypeString();
-        InOut::Out("Argument: " + argumentName + "(" + argumentType + ")  Value: ");
+        InOut::Out("Argument: " + argumentName + "(" + argumentType + ") " + arg.GetAdditionalInfo() + "Value: ");
         InOut::In(argumentValue);
         
         if(argumentValue.compare("/") != 0)
         {
-            if(this->correctArgumentType(argumentType, argumentValue))
+            if(arg.CorrectType(argumentValue) && arg.CorrectValue(argumentValue))
                 arguments += "<" + argumentName +">" + argumentValue + "</" + argumentName + ">\n";
             else
                 throw std::string("Invalid input argument!");
         }
     }
     return arguments;
-}
-
-bool STB::Action::correctArgumentType(std::string argumentType, std::string inputArgumentType)
-{
-        if(argumentType.compare("string") == 0)
-            return true;
-        else if(argumentType.compare("int") == 0 || argumentType.compare("i4") == 0) 
-        {
-            try
-            {
-                int type = std::stoi(inputArgumentType);
-                return true;
-            }
-            catch(...)
-            {
-                return false;
-            }
-        }
-        else if(argumentType.compare("float") == 0)
-        {
-            try
-            {
-                float type = std::stof(inputArgumentType);
-                return true;
-            }
-            catch(...)
-            {
-                return false;
-            }
-        }
-        else if(argumentType.compare("char") == 0)
-            return inputArgumentType.length() == 1;
-        else if(argumentType.compare("boolean") == 0)
-        {
-            return inputArgumentType.compare("true") == 0 || inputArgumentType.compare("TRUE") == 0 
-                    || inputArgumentType.compare("false") == 0 || inputArgumentType.compare("FALSE") == 0 
-                    || inputArgumentType.compare("yes") == 0 || inputArgumentType.compare("YES") == 0
-                    || inputArgumentType.compare("no") == 0 || inputArgumentType.compare("NO") == 0
-                    || inputArgumentType.compare("0") == 0 || inputArgumentType.compare("1") == 0;
-        }
-        else
-            return false;
 }
 
 void STB::Action::ParseSOAPResponse(std::string SOAPResponse)
@@ -618,34 +651,65 @@ std::unique_ptr<stateMap> STB::Service::GetStateMap(std::string XMLStateTable)
     std::string XMLStateVariable;
     std::string name;
     std::string dataType;
+    std::string sendEvents;
+    std::string valueRange;
+    std::string allowedValueList;
 
     std::string endVariableTag = "</stateVariable>";
+    std::string endAllowedValueTag = "</allowedValue>";
 
     while( XMLStateTable.length() > 0 )
     {
+        ArgumentDataFromTable data;
+
         XMLStateVariable = XMLParser::GetTagValue(XMLStateTable, "stateVariable");
         name = XMLParser::GetTagValue(XMLStateVariable, "name");
         dataType = XMLParser::GetTagValue(XMLStateVariable, "dataType");
-        ArgumentType type;
+        data.defaultValue = XMLParser::GetTagValue(XMLStateVariable, "defaulValue");
+        valueRange = XMLParser::GetTagValue(XMLStateVariable, "allowedValueRange");
+        if(!valueRange.empty())
+        {
+            data.min = XMLParser::GetTagValue(valueRange, "minimum");
+            data.max = XMLParser::GetTagValue(valueRange, "maximum");
+            data.step = XMLParser::GetTagValue(valueRange, "step");
+        }
+        allowedValueList = XMLParser::GetTagValue(XMLStateVariable, "allowedValueList");
+        if(!allowedValueList.empty())  
+            while(allowedValueList.length() > 0)
+            {
+                data.allowedValueList.push_back(XMLParser::GetTagValue(allowedValueList, "allowedValue"));
 
-        if(dataType.compare("string") == 0) 
-            type = ArgumentType::STRING;
-        else if(dataType.compare("i4") == 0) 
-            type = ArgumentType::I4;
-        else if(dataType.compare("int") == 0) 
-            type = ArgumentType::INT;
-        else if(dataType.compare("float") == 0) 
-            type = ArgumentType::FLOAT;
-        else if(dataType.compare("char") == 0) 
-            type = ArgumentType::CHAR;
-        else if(dataType.compare("boolean") == 0)
-            type = ArgumentType::BOOLEAN;
-        else
-            type = ArgumentType::UNKNOWN;
+                int cropPos = allowedValueList.find(endAllowedValueTag) + endAllowedValueTag.length();
+                if(cropPos > allowedValueList.length())
+                    break;
+                allowedValueList = allowedValueList.substr(cropPos);
+            }
+        sendEvents = XMLParser::GetTagValue(XMLStateVariable, "sendEventsAttribute");
+        if(sendEvents.empty())
+            sendEvents = XMLParser::GetTagAttributeValue(XMLStateTable, "stateVariable", "sendEvents");
         
-
+        if(sendEvents.empty())
+            data.sendEvents = false;
+        else
+            data.sendEvents = !sendEvents.compare("yes");
+            
+        if(dataType.compare("string") == 0) 
+            data.type = ArgumentType::STRING;
+        else if(dataType.compare("i4") == 0) 
+            data.type = ArgumentType::I4;
+        else if(dataType.compare("int") == 0) 
+            data.type = ArgumentType::INT;
+        else if(dataType.compare("float") == 0) 
+            data.type = ArgumentType::FLOAT;
+        else if(dataType.compare("char") == 0) 
+            data.type = ArgumentType::CHAR;
+        else if(dataType.compare("boolean") == 0)
+            data.type = ArgumentType::BOOLEAN;
+        else
+            data.type = ArgumentType::UNKNOWN;
+        
         if(map->find(name) == map->end())
-            map->insert({name, type});
+            map->insert({name, data});
 
         int cropPos = XMLStateTable.find(endVariableTag) + endVariableTag.length();
 

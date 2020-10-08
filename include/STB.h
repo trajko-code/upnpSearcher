@@ -10,7 +10,17 @@
 enum class DirectionType { IN, OUT };
 enum class ArgumentType { INT, FLOAT, CHAR, STRING, BOOLEAN, I4, UNKNOWN };
 
-typedef std::map<std::string, ArgumentType> stateMap;
+struct ArgumentDataFromTable{
+    ArgumentType type;
+    bool sendEvents;
+    std::string defaultValue;
+    std::string min;
+    std::string max;
+    std::string step;
+    std::vector<std::string> allowedValueList;
+};
+
+typedef std::map<std::string, ArgumentDataFromTable> stateMap;
 
 class STB
 {
@@ -67,11 +77,26 @@ class STB
             DirectionType directionType;
             std::string relatedStateVariable;
             ArgumentType type;
+            std::string defaultValue;
+            bool sendEvents;
+            std::vector<std::string> allowedValueList;
+            struct AllowedValueRange
+            {
+                std::string minimum;
+                std::string maximum;
+                std::string step;
+            } valueRange;
 
-            Argument(std::string name, DirectionType directionType, std::string relatedStateVariable, ArgumentType type);
+            Argument(std::string name, DirectionType directionType, std::string relatedStateVariable, ArgumentType type, std::string defaultValue, 
+                        bool sendEvents, std::vector<std::string> allowedList, struct AllowedValueRange valueRange);
             void ShowArgument() const;
+            std::string GetAdditionalInfo() const;
             std::string GetTypeString() const;
             std::string GetName() const { return this->name; }
+            std::string GetDefaultValue() const { return this->defaultValue; }
+
+            bool CorrectType(std::string argumentValue) const;
+            bool CorrectValue(std::string argumentValue) const;
         };
 
         struct Action
@@ -84,7 +109,7 @@ class STB
             std::string GetName() const { return this->name; }
 
             void ShowAction() const;
-            void AddArgument(std::string name, DirectionType directionType, std::string relatedStateVariable, ArgumentType type);
+            void AddArgument(Argument& argument);
 
             void FillArgumentList(std::string XMLAction, stateMap& stateTable);
             void ParseArgumentFromXML(std::string argumentXML, stateMap& stateTable);
@@ -92,7 +117,7 @@ class STB
             bool Execute(std::string STBAddress, std::string STBPort, std::string  serviceControlURL, std::string serviceType);
             std::string MakeSOAPRequestBody(std::string serviceType, std::string argumentList);
             std::string MakeArgumentForSOAPBody();
-            bool correctArgumentType(std::string argumentType, std::string inputArgumentType);
+            
             void ParseSOAPResponse(std::string SOAPResponse);
         };
 

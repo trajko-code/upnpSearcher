@@ -13,7 +13,7 @@ void printServiceMenu();
 int main()
 {
     Searcher cp(Config::friendlyName);
-    //std::string entry;
+    std::string entry;
     std::string ordinalNumber;
     uint number;
     std::string stbEntry;
@@ -32,7 +32,6 @@ int main()
     {
         printMainMenu();
 
-        std::string entry;
         if(!InOut::In(entry))
         {
             InOut::Out("FATAL ERROR: cin error!\n");
@@ -52,6 +51,13 @@ int main()
                 InOut::Out("No STB detected.\n");
         }
         else if(entry.compare("2") == 0)
+        {
+            if(cp.GetDetectedSTBsCount() > 0)
+                cp.ShowDetectedSTBs();
+            else
+                InOut::Out("No STB detected.\n");
+        }
+        else if(entry.compare("3") == 0)
         {
             std::shared_ptr<STB> stb;
             InOut::Out("Enter the ordinal number of the device:\n");
@@ -186,7 +192,8 @@ void printMainMenu()
     std::string mainMenu = "\n*Main menu*\n"
                         "(0) Quit\n"
                         "(1) Search STBs\n"
-                        "(2) Select STB\n"
+                        "(2) Show detected STBs\n"
+                        "(3) Select STB\n"
                         "Enter number:\n"
                         ">";
     InOut::Out(mainMenu);

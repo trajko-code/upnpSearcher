@@ -11,6 +11,7 @@
 #define REMOTE_CONTROL_SERVICE "X-CTC_RemoteControl"
 #define REMOTE_KEY_ACTION "X-CTC_RemoteKey"
 
+#pragma region STB
 STB::STB(std::string friendlyName, std::string uuid, std::string address, std::string port, std::string xmlLocation)
     :STB(uuid, address, port, xmlLocation)
 {
@@ -334,7 +335,9 @@ uint STB::GetServiceActionsCount(int serviceNumber) const
 {
     return this->services[serviceNumber].actions.size();
 }
+#pragma endregion
 
+#pragma region Argument
 STB::Argument::Argument(std::string name, DirectionType directionType, std::string relatedStateVariable, ArgumentType type, std::string defaultValue, 
                         bool sendEvents, std::vector<std::string> allowedList, struct AllowedValueRange valueRange)
     :name(name), directionType(directionType), relatedStateVariable(relatedStateVariable), type(type), defaultValue(defaultValue), sendEvents(sendEvents),
@@ -435,7 +438,9 @@ bool STB::Argument::CorrectValue(std::string inputValue) const
     }
     return true;
 }
+#pragma endregion
 
+#pragma region Action
 STB::Action::Action(std::string name)
     :name(name)
 {
@@ -575,7 +580,9 @@ void STB::Action::ParseSOAPResponse(std::string SOAPResponse)
             InOut::Out(outArg.GetName() + " : " + value + '\n');
     }
 }
+#pragma endregion
 
+#pragma region Service
 std::string STB::Service::GetNameOfService() const
 {
     ushort nameBegin = this->type.find(":service:") + 9;
@@ -734,3 +741,4 @@ bool STB::Service::ExecuteAction(std::string STBAddress, std::string STBPort, ui
 {
     return this->actions[actionNum].Execute(STBAddress, STBPort, this->GetControlUrl(), this->GetType());
 }
+#pragma endregion

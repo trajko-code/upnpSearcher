@@ -16,6 +16,11 @@ bool InOut::In(std::string& inData)
     return true;
 }
 
+void InOut::GetLine(std::string& inData)
+{
+    std::getline(std::cin, inData);
+}
+
 void InOut::Out(const std::string outData)
 {
     std::cout << outData;

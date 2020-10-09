@@ -103,7 +103,7 @@ int main()
                 else if(stbEntry.compare("4") == 0)
                 {
                     InOut::Out("Enter new friendly name: \n");
-                    InOut::In(friendlyName);
+                    InOut::GetLine(friendlyName);
                     stb->SetDeviceFriendlyName(friendlyName);
                 }
                 else if(stbEntry.compare("5") == 0)
@@ -116,7 +116,10 @@ int main()
                         InOut::In(keyNumber);
                         keyCode = getInt(keyNumber);
                         if(keyCode > 0 && keyCode <= Config::keys.size())
-                            stb->SendKeyCommand(keyCode-1);
+                        {
+                            if(!stb->SendKeyCommand(keyCode-1))
+                                backRemoteControler = false;
+                        }
                         else if(keyCode == 0)
                             backRemoteControler = false;
                         else

@@ -84,7 +84,7 @@ void Searcher::ShowDetectedSTBs() const
 
 void Searcher::ClearDetectedSTBs()
 {
-    if(this->discoveredSTB.size() > 0 )  
+    if(this->discoveredSTB.size() > 0 )
         this->discoveredSTB.clear();
 }
 

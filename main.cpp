@@ -41,7 +41,7 @@ int main()
         if(entry.compare("1") == 0)
         {
             InOut::Out("Searching devices...\n");
-            //cp.ClearDetectedSTBs();
+            cp.ClearDetectedSTBs();
             if(cp.SearchBcast(MX_DELAY, SEARCH_TIME) > 0)
             {
                 InOut::Out(">>>DETECTED DEVICES<<<\n");

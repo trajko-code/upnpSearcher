@@ -112,7 +112,7 @@ void Searcher::FilterDiscoveryResponse(const std::string response)
     std::string usn = GetHeaderValue(response, "USN");
     if(usn.empty())
         return;
-       
+
     this->TryToAddNewSTB(usn, location);
 }
 
@@ -163,9 +163,9 @@ void Searcher::TryToAddNewSTB(const std::string usn, const std::string location)
 {
     std::string uuid = usn.substr(5, 36);
     unsigned short addrBegin = location.find('/') + 2;
-    unsigned short portBegin = addrBegin + 16;
+    unsigned short portBegin = location.find(':', addrBegin) + 1;
     unsigned short xmlBegin = location.find('/', portBegin);
-    std::string address = location.substr(addrBegin, 15);
+    std::string address = location.substr(addrBegin, portBegin - addrBegin - 1);
     std::string port = location.substr(portBegin, xmlBegin - portBegin);
     std::string xmlLoc = location.substr(xmlBegin, location.length() - xmlBegin);
 
@@ -174,7 +174,7 @@ void Searcher::TryToAddNewSTB(const std::string usn, const std::string location)
             return;
         else if(stb->GetAddress().compare(address) == 0) //pri promeni frendlyName kreira se novi rootdevice sa 1 servisom bez akcija na istoj adresi
             return;
-    
+
     this->discoveredSTB.push_back(std::make_shared<STB>(uuid, address, port, xmlLoc));
 }
 

@@ -1,4 +1,4 @@
-#include "InOut.h"
+#include "InOut.hpp"
 #include <limits>
 
 bool InOut::In(std::string& inData)

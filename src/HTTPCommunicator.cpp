@@ -1,8 +1,10 @@
-#include "HTTPCommunicator.h"
+#include "HTTPCommunicator.hpp"
 
 #define BUFF_SIZE 1024
+#define CHARSET "\"utf-8\""
+#define CONTENT_TYPE "text/xml"
 
-std::string HTTPCommunicator::GetXMLDescription(std::string XMLUrl, std::string address, std::string port)
+std::string HTTPCommunicator::GetXMLDescription(const std::string XMLUrl, const std::string address, const std::string port)
 {
     std::string msg = "GET " + XMLUrl + " HTTP/1.1\r\n"
                         "Connection: close\r\n"
@@ -33,12 +35,12 @@ std::string HTTPCommunicator::GetXMLDescription(std::string XMLUrl, std::string 
     return XMLresponse;  
 }
 
-std::string HTTPCommunicator::PostExecuteAction(std::string controlURL, std::string address, std::string port, std::string soapAction, std::string body)
+std::string HTTPCommunicator::PostExecuteAction(const std::string controlURL, const std::string address, const std::string port, const std::string soapAction, const std::string body)
 {
     std::string msg = "POST " + controlURL + " HTTP/1.1\r\n"
                         "HOST: " + address + ":" + port + "\r\n"
                         "CONTENT-LENGTH: " + std::to_string(body.length()) + "\r\n"
-                        "CONTENT-TYPE: text/xml; charset=\"utf-8\"\r\n"
+                        "CONTENT-TYPE: " + std::string(CONTENT_TYPE) + "; charset=" + std::string(CHARSET) + "\r\n"
                         "USER-AGENT: " + USER_AGENT + "\r\n"
                         "SOAPACTION: \"" + soapAction + "\"\r\n"
                         "\r\n"
@@ -66,7 +68,6 @@ std::string HTTPCommunicator::PostExecuteAction(std::string controlURL, std::str
     }
     
     size_t pos = PostResponse.find(" 200 OK");
-
     if(pos == std::string::npos)
     {
         size_t endLinePos = PostResponse.find("\r\n");
@@ -77,7 +78,21 @@ std::string HTTPCommunicator::PostExecuteAction(std::string controlURL, std::str
     return PostBodyFromResponse(PostResponse);
 }
 
-std::string HTTPCommunicator::PostBodyFromResponse(std::string postResponse)
+std::string HTTPCommunicator::GetHeaderValue(const std::string httpMsg, const std::string headerName)
+{
+    size_t pos = 0;
+
+    if((pos = httpMsg.find(headerName + ":")) == std::string::npos)
+        return "";
+
+    pos += headerName.length();
+
+    while(httpMsg[++pos] == ' ') {}
+
+    return httpMsg.substr(pos, httpMsg.find("\r\n", pos) - pos);
+}
+
+std::string HTTPCommunicator::PostBodyFromResponse(const std::string postResponse)
 {
     size_t soapBegin = postResponse.find('<');
 

@@ -11,12 +11,18 @@ set(exe_include
         include/Config.hpp 
         include/InOut.hpp
         include/setTopBox/STB.hpp
+        include/setTopBox/Service.hpp
+        include/setTopBox/Action.hpp
+        include/setTopBox/Argument.hpp
         include/setTopBox/STBTypes.hpp
         include/setTopBox/KeyCodes.hpp)
 
 set(exe_source 
         src/Searcher.cpp 
-        src/STB.cpp 
+        src/STB.cpp
+        src/Service.cpp
+        src/Action.cpp
+        src/Argument.cpp
         src/XMLParser.cpp 
         src/HTTPCommunicator.cpp 
         src/InOut.cpp)

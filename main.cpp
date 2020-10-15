@@ -85,7 +85,6 @@ int main()
                 }
                 else if(stbEntry.compare("2") == 0)
                 {
-                    //stb->PairToDevice();
                     if(stb->SendPairingRequest())
                     {
                         std::string pin;

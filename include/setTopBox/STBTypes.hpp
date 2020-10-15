@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 namespace setTopBox
 {
@@ -20,6 +21,8 @@ namespace setTopBox
         std::string step;
         std::vector<std::string> allowedValueList;
     };
+
+    typedef std::map<std::string, ArgumentDataFromTable> stateMap;
 
     static std::vector<std::string> booleanValues = {"true", "TRUE", "false", "FALSE", "yes", "YES", "no", "NO", "0", "1"};
 }

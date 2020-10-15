@@ -1,17 +1,17 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
-namespace Config
+namespace setTopBox
 {
     struct Key{
         std::string keyName;
         std::string keyValue;
         std::string description;
     };
-    static std::string friendlyName = "upnpSearcher";
-    static std::string aplicationID = "1234";
-    static std::vector<Key> keys = { {"KEY_IP_POWER", "0x0100", "Power on/off" },
+
+    static std::vector<Key> keyCodes = { {"KEY_IP_POWER", "0x0100", "Power on/off" },
                                 {"KEY_MUTE", "0x0105", "This key is used to set the mute mode." },
                                 {"KEY_1", "0x0031" , "1" },
                                 {"KEY_2", "0x0032" , "2" },

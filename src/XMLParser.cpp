@@ -1,6 +1,6 @@
-#include "XMLParser.h"
+#include "XMLParser.hpp"
 
-std::string XMLParser::GetTagValue(const std::string xmlMessage, std::string tagName)
+std::string XMLParser::GetTagValue(const std::string xmlMessage, const std::string tagName)
 {
     size_t tagBegin = xmlMessage.find("<" + tagName + ">");
     size_t tagValueBegin;
@@ -19,12 +19,12 @@ std::string XMLParser::GetTagValue(const std::string xmlMessage, std::string tag
         tagValueBegin = tagBegin + tagName.length() + 2;
     }
         
-    size_t tagValueEnd = xmlMessage.find("</" + tagName + ">", tagBegin);
+    size_t tagValueEnd = xmlMessage.find("</" + tagName + ">", tagValueBegin);
 
     return xmlMessage.substr(tagValueBegin, tagValueEnd - tagValueBegin);
 }
 
-std::string XMLParser::GetTagAttributeValue(const std::string xmlMessage, std::string tagName, std::string attributeName)
+std::string XMLParser::GetTagAttributeValue(const std::string xmlMessage, const std::string tagName, const std::string attributeName)
 {
     size_t tagAttrBegin = xmlMessage.find("<" + tagName + " ");
     if(tagAttrBegin == std::string::npos)

@@ -1,18 +1,13 @@
-#include "Searcher.h"
+#include "Searcher.hpp"
 #include <chrono> 
 #include <algorithm>
 
-using namespace std::chrono;
-
 #define SSDP_MULTICAST_ADDRESS "239.255.255.250"
 #define SSDP_PORT 1900
+#define SSDP_DISCOVER "\"ssdp:discover\""
 #define BUFF_SIZE 1024
 #define RESPONSE_OK "HTTP/1.1 200 OK"
-
-Searcher::Searcher(std::string friendlyName)
-    :friendlyName(friendlyName)
-{
-}
+#define UUID_LENGTH 36
 
 uint16_t Searcher::SearchBcast(const std::string delay, const int searchTime)
 {
@@ -22,8 +17,8 @@ uint16_t Searcher::SearchBcast(const std::string delay, const int searchTime)
 uint16_t Searcher::SearchBcast(const std::string delay, const std::string target, const int searchTime)
 { 
     std::string msg = "M-SEARCH * HTTP/1.1\r\n"
-                    "HOST: 239.255.255.250:1900\r\n"
-                    "MAN: \"ssdp:discover\"\r\n"
+                    "HOST: " + std::string(SSDP_MULTICAST_ADDRESS) + ":" + std::to_string(SSDP_PORT) + "\r\n"
+                    "MAN: " + std::string(SSDP_DISCOVER) + "\r\n"
                     "MX: " + delay + "\r\n"
                     "ST: " + target + "\r\n"
                     "\r\n";
@@ -50,19 +45,16 @@ uint16_t Searcher::SearchBcast(const std::string delay, const std::string target
     memset(recvBuf, 0, BUFF_SIZE);
 
     MySocket fromSock;
-    auto start = high_resolution_clock::now(); 
+    auto start = std::chrono::high_resolution_clock::now(); 
 
-    while (duration_cast<seconds>(high_resolution_clock::now() - start).count() < searchTime)
+    while (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - start).count() < searchTime)
     {
         sock.RecieveFrom(recvBuf, BUFF_SIZE, 0, fromSock);
         FilterDiscoveryResponse(std::string(recvBuf));
     }
 
     if(!this->discoveredSTB.empty())
-        this->discoveredSTB.remove_if([this](std::shared_ptr<STB>& stb) { return !stb->GetDescription(); });
-        // for(auto& stb : this->discoveredSTB)
-        //     if(!stb->SearchSTBDescription())
-        //         this->discoveredSTB.remove(stb);
+        std::remove_if(this->discoveredSTB.begin(), this->discoveredSTB.end(), [](std::shared_ptr<setTopBox::STB>& stb) { return !stb->RequireDescription(); });
 
     return this->discoveredSTB.size();
 }
@@ -76,10 +68,7 @@ void Searcher::ShowDetectedSTBs() const
 {
     int i = 1;
     for(auto const& stb : this->discoveredSTB)
-    {
-        InOut::Out("\t" + std::to_string(i) + ". " + stb->GetFriendlyName() + "  (" + stb->GetUUID() + ")\n");
-        i++;
-    }
+        InOut::Out("\t" + std::to_string(i++) + ". " + stb->GetFriendlyName() + "  (" + stb->GetUUID() + ")\n");
 }
 
 void Searcher::ClearDetectedSTBs()
@@ -94,22 +83,18 @@ void Searcher::FilterDiscoveryResponse(const std::string response)
         return;
 
     std::string location;
-    if((location = GetHeaderValue(response, "LOCATION")).empty())
+    if((location = HTTPCommunicator::GetHeaderValue(response, "LOCATION")).empty())
         return;   
 
-    std::string server = GetHeaderValue(response, "SERVER");
-    if(server.empty())
-        return;
-    else if(server.find("zss/") == std::string::npos)
+    std::string server = HTTPCommunicator::GetHeaderValue(response, "SERVER");
+    if(server.find("zss/") == std::string::npos)
         return;
 
-    // std::string st = GetHeaderValue(response, "ST");
-    // if(st.empty())
-    //     return;
-    // else if(st.find("urn:zenterio-net:") == std::string::npos)
-    //     return;
+    std::string st = HTTPCommunicator::GetHeaderValue(response, "ST");
+    if(st.find("urn:zenterio-net:") == std::string::npos)
+        return;
 
-    std::string usn = GetHeaderValue(response, "USN");
+    std::string usn = HTTPCommunicator::GetHeaderValue(response, "USN");
     if(usn.empty())
         return;
 
@@ -121,7 +106,7 @@ void Searcher::FilterMulticastMessage(const std::string response)
     if(response.find("NOTIFY *") == std::string::npos)
         return;
     
-    std::string nts = GetHeaderValue(response, "NTS");
+    std::string nts = HTTPCommunicator::GetHeaderValue(response, "NTS");
     if(nts.empty())
         return;
     else if(nts.compare(ALIVE) != 0) //processing alive notify
@@ -161,40 +146,24 @@ void Searcher::FilterMulticastMessage(const std::string response)
 
 void Searcher::TryToAddNewSTB(const std::string usn, const std::string location)
 {
-    std::string uuid = usn.substr(5, 36);
-    unsigned short addrBegin = location.find('/') + 2;
-    unsigned short portBegin = location.find(':', addrBegin) + 1;
-    unsigned short xmlBegin = location.find('/', portBegin);
+    size_t uuidBegin = usn.find("uuid:") + 5;   
+    std::string uuid = usn.substr(uuidBegin, UUID_LENGTH);
+    size_t addrBegin = location.find('/') + 2;
+    size_t portBegin = location.find(':', addrBegin) + 1;
+    size_t xmlBegin = location.find('/', portBegin);
     std::string address = location.substr(addrBegin, portBegin - addrBegin - 1);
     std::string port = location.substr(portBegin, xmlBegin - portBegin);
     std::string xmlLoc = location.substr(xmlBegin, location.length() - xmlBegin);
 
-    for(auto const &stb : this->discoveredSTB)
-        if(stb->GetUUID().compare(uuid) == 0)
-            return;
-        else if(stb->GetAddress().compare(address) == 0) //pri promeni frendlyName kreira se novi rootdevice sa 1 servisom bez akcija na istoj adresi
-            return;
-
-    this->discoveredSTB.push_back(std::make_shared<STB>(uuid, address, port, xmlLoc));
+    //pri promeni frendlyName kreira se novi rootdevice sa 1 servisom bez akcija na istoj adresi pa se zbog toga i adresa ispituje
+    if(!std::any_of(this->discoveredSTB.begin(), this->discoveredSTB.end(), 
+        [uuid, address](const std::shared_ptr<setTopBox::STB>& stb) { return !stb->GetUUID().compare(uuid) || !stb->GetAddress().compare(address); }))
+    {   
+        this->discoveredSTB.push_back(std::make_shared<setTopBox::STB>(uuid, address, port, xmlLoc));
+    }
 }
 
-std::shared_ptr<STB> Searcher::GetSTB(int ordinalNumber)
+std::shared_ptr<setTopBox::STB> Searcher::GetSTB(unsigned int ordNumber)
 {
-    int i = 0;
-    for(auto const &stb : this->discoveredSTB )
-        if(i++ == ordinalNumber)
-            return stb;
-    return nullptr;
-}
-
-std::string Searcher::GetHeaderValue(const std::string response, const std::string key)
-{
-    size_t pos = 0;
-
-    if((pos = response.find(key+":")) == std::string::npos)
-        return "";
-
-    pos += key.length() + 2;
-
-    return response.substr(pos, response.find("\r\n", pos) - pos);
+    return this->discoveredSTB[ordNumber];
 }

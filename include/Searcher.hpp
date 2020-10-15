@@ -1,8 +1,8 @@
 #include <string>
-#include <list>
+#include <vector>
 #include "MySocket.h"
-#include "STB.h"
-#include "InOut.h"
+#include "setTopBox/STB.hpp"
+#include "InOut.hpp"
 
 #define ALIVE "ssdp:alive"
 #define BYEBYE "ssdp:byebye"
@@ -13,11 +13,14 @@
 class Searcher
 {
     private:
-        std::string friendlyName;
-        std::list<std::shared_ptr<STB>> discoveredSTB;
+        std::vector<std::shared_ptr<setTopBox::STB>> discoveredSTB;
  
     public:
-        Searcher(std::string friendlyName);
+        static Searcher& GetInstance() 
+        {
+            static Searcher instance;
+            return instance;
+        }
 
         uint16_t SearchBcast(const std::string delay, const int searchTime);
         uint16_t SearchBcast(const std::string delay, const std::string target, const int searchTime);
@@ -25,12 +28,16 @@ class Searcher
         int GetDetectedSTBsCount() const;
         void ShowDetectedSTBs() const;
         void ClearDetectedSTBs();
-        std::shared_ptr<STB> GetSTB(int uuid);
-        
+        std::shared_ptr<setTopBox::STB> GetSTB(unsigned int ordNumber);
+
     private:
+        Searcher() = default;
+        ~Searcher() = default;
+        Searcher(const Searcher&) = delete;
+        Searcher& operator=(const Searcher&) = delete;
+
         void FilterDiscoveryResponse(const std::string response);
         void FilterMulticastMessage(const std::string response);
 
         void TryToAddNewSTB(const std::string usn, const std::string location);
-        std::string GetHeaderValue(const std::string response, const std::string key);
 };

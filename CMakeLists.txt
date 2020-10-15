@@ -4,8 +4,28 @@ project(upnpSearcher)
 
 set(CMAKE_CXX_STANDARD 11)
 
-set(exe_include include/Searcher.h include/STB.h include/XMLParser.h include/HTTPCommunicator.h include/Configuration.h include/InOut.h)
-set(exe_source src/Searcher.cpp src/STB.cpp src/XMLParser.cpp src/HTTPCommunicator.cpp src/InOut.cpp)
+set(exe_include 
+        include/Searcher.hpp 
+        include/XMLParser.hpp 
+        include/HTTPCommunicator.hpp
+        include/Config.hpp 
+        include/InOut.hpp
+        include/setTopBox/STB.hpp
+        include/setTopBox/Service.hpp
+        include/setTopBox/Action.hpp
+        include/setTopBox/Argument.hpp
+        include/setTopBox/STBTypes.hpp
+        include/setTopBox/KeyCodes.hpp)
+
+set(exe_source 
+        src/Searcher.cpp 
+        src/STB.cpp
+        src/Service.cpp
+        src/Action.cpp
+        src/Argument.cpp
+        src/XMLParser.cpp 
+        src/HTTPCommunicator.cpp 
+        src/InOut.cpp)
 
 add_executable(mainUPnP main.cpp ${exe_include} ${exe_source})
 

@@ -1,9 +1,10 @@
-#include "Searcher.h"
-#include "Configuration.h"
-#include "InOut.h"
+#include "Searcher.hpp"
+#include "Config.hpp"
+#include "InOut.hpp"
+#include "setTopBox/KeyCodes.hpp"
 
 #define MX_DELAY "2"
-#define SEARCH_TIME 2
+#define SEARCH_TIME 1
 
 int getInt(std::string input);
 void printMainMenu();
@@ -12,7 +13,7 @@ void printServiceMenu();
 
 int main()
 {
-    Searcher cp(Config::friendlyName);
+    auto& cp = Searcher::GetInstance();
     std::string entry;
     std::string ordinalNumber;
     uint number;
@@ -59,7 +60,7 @@ int main()
         }
         else if(entry.compare("3") == 0)
         {
-            std::shared_ptr<STB> stb;
+            std::shared_ptr<setTopBox::STB> stb;
             InOut::Out("Enter the ordinal number of the device:\n");
             InOut::In(ordinalNumber);
             number = getInt(ordinalNumber);
@@ -84,7 +85,6 @@ int main()
                 }
                 else if(stbEntry.compare("2") == 0)
                 {
-                    //stb->PairToDevice();
                     if(stb->SendPairingRequest())
                     {
                         std::string pin;
@@ -115,7 +115,7 @@ int main()
                         InOut::Out("Enter key number (or 0 to exit): \n");
                         InOut::In(keyNumber);
                         keyCode = getInt(keyNumber);
-                        if(keyCode > 0 && keyCode <= Config::keys.size())
+                        if(keyCode > 0 && keyCode <= setTopBox::keyCodes.size())
                         {
                             if(!stb->SendKeyCommand(keyCode-1))
                                 backRemoteControler = false;

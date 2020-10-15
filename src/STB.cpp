@@ -15,19 +15,13 @@ namespace setTopBox
 {
 
 #pragma region STB
-    STB::STB(std::string friendlyName, std::string uuid, std::string address, std::string port, std::string xmlLocation)
-        :STB(uuid, address, port, xmlLocation)
-    {
-        this->friendlyName = friendlyName;
-    }
-
     STB::STB(std::string uuid, std::string address, std::string port, std::string xmlLocation)
         :uuid(uuid), address(address), port(port), configXMLLocation(xmlLocation)
     {
         this->paired = false;
     }
 
-    bool STB::GetDescription()
+    bool STB::RequireDescription()
     {
         std::string XMLResponse = HTTPCommunicator::GetXMLDescription(this->GetXMLLocation(), this->GetAddress(), this->GetPort());
 
@@ -59,27 +53,28 @@ namespace setTopBox
         InOut::Out("Manufacturer: " + this->GetManufacturer() + '\n');
         InOut::Out("Serial number: " + this->GetSerialNumber() + '\n');
         InOut::Out("Configuration XML location: " + this->GetXMLLocation() + '\n');
+        InOut::Out("Verification code (if paired): " + this->GetVerificationCode() + '\n');
     }
 
-    void STB::FillServiceList(std::string XMLResponse)
+    void STB::FillServiceList(const std::string XMLResponse)
     {
         std::string serviceList = XMLParser::GetTagValue(XMLResponse, "serviceList");
         std::string serviceXML;
         std::string endServiceTag = "</service>";
 
-        while( serviceList.length() > 0 )
+        while(serviceList.length() > 0)
         {
             serviceXML = XMLParser::GetTagValue(serviceList, "service");
             this->ParseServiceFromXML(serviceXML);
             
             int cropPos = serviceList.find(endServiceTag) + endServiceTag.length();
             if(cropPos > serviceList.length())
-            return;
+                return;
             serviceList = serviceList.substr(cropPos);
         }
     }
 
-    void STB::ParseServiceFromXML(std::string XMLservice)
+    void STB::ParseServiceFromXML(const std::string XMLservice)
     {
         std::string type = XMLParser::GetTagValue(XMLservice, "serviceType");
         std::string id = XMLParser::GetTagValue(XMLservice, "serviceId");
@@ -90,7 +85,8 @@ namespace setTopBox
         this->AddService(type, id, controlURL, eventURL, descriptionURL);
     }
 
-    void STB::AddService(std::string type, std::string id, std::string controlURL, std::string eventURL, std::string descriptionURL)
+    void STB::AddService(const std::string type, const std::string id,
+        std::string controlURL, const std::string eventURL, const std::string descriptionURL)
     {
         if(!std::any_of(this->services.begin(), this->services.end(), [id](const Service& s) { return !s.id.compare(id); }))
             this->services.push_back(Service{type, id, controlURL, eventURL, descriptionURL});
@@ -99,7 +95,7 @@ namespace setTopBox
     void STB::ShowMyServices() const
     {
         int i = 1;
-        for(auto &service : this->services)
+        for(const auto &service : this->services)
         {
             InOut::Out("\t" + std::to_string(i++) + ". " + service.GetNameOfService() + " : " + service.GetVersionOfService() + '\n');
         }
@@ -108,16 +104,18 @@ namespace setTopBox
     void STB::ShowServiceActions(int serviceNumber) 
     {
         if(this->services[serviceNumber].GetActionCount() < 1)
-            this->services[serviceNumber].GetServiceDescription(this->GetAddress(), this->GetPort());
+            this->services[serviceNumber].RequireServiceDescription(this->GetAddress(), this->GetPort());
         
         this->services[serviceNumber].ShowMyActions();
     }
 
-    void STB::SearchServiceDescription(std::string serviceName)  
+    void STB::SearchServiceDescription(const std::string serviceName)  
     {
-        auto service = std::find_if(this->services.begin(), this->services.end(), [&serviceName](const Service& s) { return !s.GetNameOfService().compare(serviceName); });
+        auto service = std::find_if(this->services.begin(), this->services.end(), 
+            [&serviceName](const Service& s) { return !s.GetNameOfService().compare(serviceName); });
+        
         if(service != this->services.end())
-            service->GetServiceDescription(this->GetAddress(), this->GetPort());
+            service->RequireServiceDescription(this->GetAddress(), this->GetPort());
     }
 
     bool STB::ExecuteServiceAction(uint serviceNumber, uint actionNumber)
@@ -125,9 +123,10 @@ namespace setTopBox
         return this->services[serviceNumber].ExecuteAction(this->GetAddress(), this->GetPort(), actionNumber);
     }
 
-    std::string STB::ExecuteServiceAction(std::string serviceName, std::string actionName, std::string argumentList)
+    std::string STB::ExecuteServiceAction(const std::string serviceName, const std::string actionName, const std::string argumentList)
     {
-        auto service = std::find_if(this->services.begin(), this->services.end(), [serviceName](Service& s) { return !s.GetNameOfService().compare(serviceName); });
+        auto service = std::find_if(this->services.begin(), this->services.end(), 
+            [serviceName](Service& s) { return !s.GetNameOfService().compare(serviceName); });
         
         if(service == this->services.end())
         {
@@ -136,9 +135,10 @@ namespace setTopBox
         }
 
         if(service->GetActionCount() < 1)
-            service->GetServiceDescription(this->GetAddress(), this->GetPort());
+            service->RequireServiceDescription(this->GetAddress(), this->GetPort());
 
-        auto action = std::find_if(service->actions.begin(), service->actions.end(), [actionName](Action& a) { return !a.GetName().compare(actionName); });
+        auto action = std::find_if(service->actions.begin(), service->actions.end(), 
+            [actionName](Action& a) { return !a.GetName().compare(actionName); });
         
         if(action == service->actions.end())
         {
@@ -181,16 +181,14 @@ namespace setTopBox
             return false;
     
         std::string result = XMLParser::GetTagValue(SOAPResponse, "result");
-        if(result.compare("0") != 0)
-            return false;
-        
-        return true;
+
+        return !result.compare("0");
     }
 
     bool STB::SendPairingCheck(const std::string pin)
     {
         std::string argumentList = "<pairingDeviceID>" + Config::aplicationID + "</pairingDeviceID>"
-                        "<verificationPIN>" + pin + "</verificationPIN>";
+                                    "<verificationPIN>" + pin + "</verificationPIN>";
 
         std::string SOAPResponse = this->ExecuteServiceAction(REMOTE_PAIRING_SERVICE, PAIRING_CHECK_ACTION, argumentList);
 
@@ -214,10 +212,8 @@ namespace setTopBox
 
     bool STB::CheckIsPaired()
     {
-        if(!this->paired || this->GetVerificationCode().empty())
-        {   
+        if(!this->paired || this->GetVerificationCode().empty())   
             return false;
-        }
 
         std::string argumentList = "<pairingDeviceID>" + Config::aplicationID + "</pairingDeviceID>"
                                     "<verificationCode>" + this->GetVerificationCode() + "</verificationCode>";       
@@ -249,8 +245,8 @@ namespace setTopBox
         }
 
         std::string argumentList = "<pairingDeviceID>" + Config::aplicationID + "</pairingDeviceID>"
-                                    "<verificationCode>" + this->GetVerificationCode() + "</verificationCode>"
-                                    "<stbFriendlyName>" + fname + "</stbFriendlyName>";
+                                "<verificationCode>" + this->GetVerificationCode() + "</verificationCode>"
+                                "<stbFriendlyName>" + fname + "</stbFriendlyName>";
 
         std::string SOAPResponse = this->ExecuteServiceAction(REMOTE_PAIRING_SERVICE, SET_FRIENDLY_NAME_ACTION, argumentList);
 
@@ -268,7 +264,7 @@ namespace setTopBox
 
     void STB::ShowKeysName() const
     {
-        int i=1;
+        int i = 1;
         for(auto const& key : setTopBox::keyCodes)
             InOut::Out(std::to_string(i++) + " " + key.keyName + "    (" + key.description + ")\n");
     }
@@ -303,17 +299,19 @@ namespace setTopBox
 
 #pragma region Argument
     STB::Argument::Argument(std::string name, DirectionType directionType, 
-                            std::string relatedStateVariable, ArgumentType type, 
+                            std::string relatedStateVariable, std::string type, 
                             std::string defaultValue, bool sendEvents,
-                            std::vector<std::string> allowedList, struct AllowedValueRange valueRange)
-        :name(name), directionType(directionType), relatedStateVariable(relatedStateVariable), type(type), defaultValue(defaultValue), sendEvents(sendEvents),
+                            std::vector<std::string> allowedList,
+                            struct AllowedValueRange valueRange)
+        :name(name), directionType(directionType), relatedStateVariable(relatedStateVariable), 
+        type(type), defaultValue(defaultValue), sendEvents(sendEvents), 
         allowedValueList(allowedList), valueRange(valueRange)
     {
     }
 
     void STB::Argument::ShowArgument() const
     {
-        InOut::Out("{" + this->name + " " + this->GetTypeString() + " events:" + (this->sendEvents?"yes":"no") + "}");
+        InOut::Out("{" + this->name + " " + this->GetType() + " events:" + (this->sendEvents?"yes":"no") + "}");
     }
 
     std::string STB::Argument::GetAdditionalInfo() const
@@ -329,35 +327,17 @@ namespace setTopBox
             info += ")";
         }
         if(!this->valueRange.minimum.empty())
-            info += "Value range: minimum - " + this->valueRange.minimum + " maximum - " + this->valueRange.maximum + "step - " + this->valueRange.step;
+            info += "Value range: minimum - " + this->valueRange.minimum + 
+                " maximum - " + this->valueRange.maximum + "step - " + this->valueRange.step;
         info += "\n";
         return info;
     }
 
-    std::string STB::Argument::GetTypeString() const
-    {
-        if(this->type == ArgumentType::STRING) 
-            return "string";
-        else if(this->type == ArgumentType::I4) 
-            return "i4";
-        else if(this->type == ArgumentType::INT) 
-            return "int";
-        else if(this->type == ArgumentType::FLOAT) 
-            return "float";
-        else if(this->type == ArgumentType::CHAR) 
-            return "char";
-        else if(this->type == ArgumentType::BOOLEAN)
-            return "boolean";
-        else
-            return "unknown";
-    }
-
-    std::vector<std::string> booleanValue = {"true", "TRUE", "false", "FALSE", "yes", "YES", "no", "NO", "0", "1"};
     bool STB::Argument::CorrectType(std::string inputValue) const
     {
-        if(this->type == ArgumentType::STRING)
+        if(!this->GetType().compare("string"))
                 return true;
-        else if(this->type == ArgumentType::INT || this->type == ArgumentType::I4) 
+        else if(!this->GetType().compare("int") || !this->GetType().compare("i4")) 
         {
             try
             {
@@ -369,7 +349,7 @@ namespace setTopBox
                 return false;
             }
         }
-        else if(this->type == ArgumentType::FLOAT)
+        else if(!this->GetType().compare("float"))
         {
             try
             {
@@ -381,11 +361,11 @@ namespace setTopBox
                 return false;
             }
         }
-        else if(this->type == ArgumentType::CHAR)
+        else if(!this->GetType().compare("char"))
             return inputValue.length() == 1;
-        else if(this->type == ArgumentType::BOOLEAN)
-            return std::find_if( booleanValue.begin(), booleanValue.end(),
-                [inputValue](const std::string& s){return !inputValue.compare(s); }) != booleanValue.end();
+        else if(!this->GetType().compare("boolean"))
+            return std::find_if( booleanValues.begin(), booleanValues.end(),
+                [inputValue](const std::string& s){return !inputValue.compare(s); }) != booleanValues.end();
         else
             return false;
     }
@@ -394,7 +374,9 @@ namespace setTopBox
     {
         if(this->allowedValueList.size() > 0)
         {
-            auto allowedValue = std::find_if(this->allowedValueList.begin(), this->allowedValueList.end(), [&inputValue](const std::string& value) { return !value.compare(inputValue); });
+            auto allowedValue = std::find_if(this->allowedValueList.begin(), this->allowedValueList.end(), 
+                [&inputValue](const std::string& value) { return !value.compare(inputValue); });
+
             if(allowedValue == this->allowedValueList.end())
                 return false;
         }
@@ -434,7 +416,7 @@ namespace setTopBox
             this->OutputParameters.push_back(argument);
     }
 
-    void STB::Action::FillArgumentList(std::string XMLAction, stateMap& stateTable)
+    void STB::Action::FillArgumentList(const std::string XMLAction, stateMap& stateTable)
     {
         std::string argumentList = XMLParser::GetTagValue(XMLAction, "argumentList");
         std::string argumentXML;
@@ -445,6 +427,7 @@ namespace setTopBox
         {
             argumentXML = XMLParser::GetTagValue(argumentList, "argument");
             this->ParseArgumentFromXML(argumentXML, stateTable);
+
             int cropPos = argumentList.find(endArgumentTag) + endArgumentTag.length();
             if(cropPos > argumentList.length())
                 return;
@@ -466,7 +449,7 @@ namespace setTopBox
         this->AddArgument(newArgument);
     }
 
-    bool STB::Action::Execute(std::string STBAddress, std::string STBPort, std::string  serviceControlURL, std::string serviceType)
+    bool STB::Action::Execute(const std::string STBAddress, const std::string STBPort, const std::string  serviceControlURL, const std::string serviceType)
     {
         try
         {
@@ -486,12 +469,12 @@ namespace setTopBox
         }
         catch(const std::string& ex)
         {
-            std::cerr << ex << '\n';
+            InOut::Out(ex + '\n');
             return false;
         }   
     }
 
-    std::string STB::Action::MakeSOAPRequestBody(std::string serviceType,std::string argumentList)
+    std::string STB::Action::MakeSOAPRequestBody(const std::string serviceType, const std::string argumentList)
     { 
         return  "<s:Envelope xmlns:s=\"" + std::string(XMLNS) + "\" "
                 "s:encodingStyle=\"" + std::string(ENCODING_STYLE) + "\">\n"
@@ -507,14 +490,12 @@ namespace setTopBox
     {
         std::string arguments;
         std::string argumentName;
-        std::string argumentType;
         std::string argumentValue;
         InOut::Out("Enter arguments for the action \"" + this->GetName() + "\" ('/' if the argument is not used):\n");
         for(auto const& arg : this->InputParameters)
         {
             argumentName = arg.GetName();
-            argumentType = arg.GetTypeString();
-            InOut::Out("Argument: " + argumentName + "(" + argumentType + ") " + arg.GetAdditionalInfo() + "Value: ");
+            InOut::Out("Argument: " + argumentName + "(" + arg.GetType() + ") " + arg.GetAdditionalInfo() + "Value: ");
             InOut::In(argumentValue);
             
             if(argumentValue.compare("/") != 0)
@@ -522,13 +503,13 @@ namespace setTopBox
                 if(arg.CorrectType(argumentValue) && arg.CorrectValue(argumentValue))
                     arguments += "<" + argumentName +">" + argumentValue + "</" + argumentName + ">\n";
                 else
-                    throw std::string("Invalid input argument!");
+                    throw std::string("ERROR: Invalid input argument!");
             }
         }
         return arguments;
     }
 
-    void STB::Action::ParseSOAPResponse(std::string SOAPResponse)
+    void STB::Action::ParseSOAPResponse(const std::string SOAPResponse)
     {
         std::string value;
         InOut::Out("### RESPONSE OK ###\n");
@@ -544,20 +525,20 @@ namespace setTopBox
 #pragma region Service
     std::string STB::Service::GetNameOfService() const
     {
-        ushort nameBegin = this->type.find(":service:") + 9;
-        ushort nameEnd = this->type.find(':', nameBegin);
+        size_t nameBegin = this->type.find(":service:") + std::string(":service:").length();
+        size_t nameEnd = this->type.find(':', nameBegin);
         return this->type.substr(nameBegin, nameEnd - nameBegin);
     }
 
     std::string STB::Service::GetVersionOfService() const
     {
-        ushort versionBegin = this->type.rfind(':') + 1;
+        size_t versionBegin = this->type.rfind(':') + 1;
         return this->type.substr(versionBegin, this->type.length() - versionBegin);
     }
 
     std::string STB::Service::GetServiceId() const
     {
-        ushort idBegin = this->id.find(":serviceId:") + 11;
+        size_t idBegin = this->id.find(":serviceId:") + std::string(":serviceId:").length();
         return this->id.substr(idBegin, this->id.length() - idBegin);
     }
 
@@ -571,9 +552,9 @@ namespace setTopBox
         }
     }
 
-    bool STB::Service::GetServiceDescription(std::string STBAddress, std::string STBPort)
+    bool STB::Service::RequireServiceDescription(const std::string STBAddress, const std::string STBPort)
     {
-        std::string XMLResponse = HTTPCommunicator::GetXMLDescription(descriptionURL, STBAddress, STBPort);
+        std::string XMLResponse = HTTPCommunicator::GetXMLDescription(this->descriptionURL, STBAddress, STBPort);
 
         XMLParser::RemoveBlanks(XMLResponse);
 
@@ -586,23 +567,20 @@ namespace setTopBox
             return false;
     }
 
-    void STB::Service::FillActionList(std::string XMLServiceResponse)
+    void STB::Service::FillActionList(const std::string XMLServiceResponse)
     {
         std::string actionList = XMLParser::GetTagValue(XMLServiceResponse, "actionList");
         std::string XMLStateTable = XMLParser::GetTagValue(XMLServiceResponse, "serviceStateTable");
         std::unique_ptr<stateMap> stateTable = GetStateMap(XMLStateTable);
         std::string actionXML;
-
         std::string endActionTag = "</action>";
 
         while( actionList.length() > 0 )
         {
             actionXML = XMLParser::GetTagValue(actionList, "action");
-
             this->ParseActionFromXML(actionXML, *stateTable);
 
             int cropPos = actionList.find(endActionTag) + endActionTag.length();
-
             if(cropPos > actionList.length())
                 return;
 
@@ -624,13 +602,13 @@ namespace setTopBox
         std::string endVariableTag = "</stateVariable>";
         std::string endAllowedValueTag = "</allowedValue>";
 
-        while( XMLStateTable.length() > 0 )
+        while(XMLStateTable.length() > 0)
         {
             ArgumentDataFromTable data;
 
             XMLStateVariable = XMLParser::GetTagValue(XMLStateTable, "stateVariable");
             name = XMLParser::GetTagValue(XMLStateVariable, "name");
-            dataType = XMLParser::GetTagValue(XMLStateVariable, "dataType");
+            data.type = XMLParser::GetTagValue(XMLStateVariable, "dataType");
             data.defaultValue = XMLParser::GetTagValue(XMLStateVariable, "defaulValue");
             valueRange = XMLParser::GetTagValue(XMLStateVariable, "allowedValueRange");
             if(!valueRange.empty())
@@ -658,27 +636,11 @@ namespace setTopBox
                 data.sendEvents = false;
             else
                 data.sendEvents = !sendEvents.compare("yes");
-                
-            if(dataType.compare("string") == 0) 
-                data.type = ArgumentType::STRING;
-            else if(dataType.compare("i4") == 0) 
-                data.type = ArgumentType::I4;
-            else if(dataType.compare("int") == 0) 
-                data.type = ArgumentType::INT;
-            else if(dataType.compare("float") == 0) 
-                data.type = ArgumentType::FLOAT;
-            else if(dataType.compare("char") == 0) 
-                data.type = ArgumentType::CHAR;
-            else if(dataType.compare("boolean") == 0)
-                data.type = ArgumentType::BOOLEAN;
-            else
-                data.type = ArgumentType::UNKNOWN;
-            
+
             if(map->find(name) == map->end())
                 map->insert({name, data});
 
             int cropPos = XMLStateTable.find(endVariableTag) + endVariableTag.length();
-
             if(cropPos > XMLStateTable.length())
                 return map;
                 
@@ -688,7 +650,7 @@ namespace setTopBox
         return map;
     }
 
-    void STB::Service::ParseActionFromXML(std::string actionXML, stateMap& stateTable)
+    void STB::Service::ParseActionFromXML(const std::string actionXML, stateMap& stateTable)
     {
         std::string name = XMLParser::GetTagValue(actionXML, "name");
         Action action(name);
@@ -696,7 +658,7 @@ namespace setTopBox
         this->actions.push_back(action);
     }
 
-    bool STB::Service::ExecuteAction(std::string STBAddress, std::string STBPort, uint actionNum)
+    bool STB::Service::ExecuteAction(const std::string STBAddress, const std::string STBPort, uint actionNum)
     {
         return this->actions[actionNum].Execute(STBAddress, STBPort, this->GetControlUrl(), this->GetType());
     }

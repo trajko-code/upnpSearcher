@@ -10,7 +10,8 @@ set(exe_include
         include/HTTPCommunicator.hpp
         include/Config.hpp 
         include/InOut.hpp
-        include/setTopBox/STB.hpp 
+        include/setTopBox/STB.hpp
+        include/setTopBox/STBTypes.hpp
         include/setTopBox/KeyCodes.hpp)
 
 set(exe_source 

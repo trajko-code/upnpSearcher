@@ -1,44 +1,32 @@
+#pragma once
+
 #include <string>
 #include <vector>
 #include <map>
-#include <algorithm> 
-#include "MySocket.h"
+#include <algorithm>
 #include "XMLParser.hpp"
 #include "HTTPCommunicator.hpp"
 #include "InOut.hpp"
 #include "setTopBox/KeyCodes.hpp"
+#include "setTopBox/STBTypes.hpp"
 
 namespace setTopBox
-{
-    enum class DirectionType { IN, OUT };
-    enum class ArgumentType { INT, FLOAT, CHAR, STRING, BOOLEAN, I4, UNKNOWN };
-    
-
-    struct ArgumentDataFromTable{
-        ArgumentType type;
-        bool sendEvents;
-        std::string defaultValue;
-        std::string min;
-        std::string max;
-        std::string step;
-        std::vector<std::string> allowedValueList;
-    };
-
+{ 
     typedef std::map<std::string, ArgumentDataFromTable> stateMap;
 
     class STB
     {
         public:
-            STB(std::string friendlyName, std::string uuid, std::string address, std::string port, std::string xmlLocation);
             STB(std::string uuid, std::string address, std::string port, std::string xmlLocation);
 
-            bool GetDescription();
+            bool RequireDescription();
             void ShowDescription() const;
             void ShowMyServices() const;
             void ShowServiceActions(int serviceNumber);
-            void FillServiceList(std::string XMLResponse);     
-            void AddService(std::string type, std::string id, std::string controlURL, std::string eventURL, std::string descriptionURL);
-            void SearchServiceDescription(std::string serviceName); 
+            void FillServiceList(const std::string XMLResponse);     
+            void AddService(const std::string type, const std::string id, 
+                const std::string controlURL, const std::string eventURL, const std::string descriptionURL);
+            void SearchServiceDescription(const std::string serviceName); 
 
             bool ExecuteServiceAction(uint serviceNumber, uint actionNumber);
 
@@ -59,7 +47,7 @@ namespace setTopBox
             std::string GetPort() const { return this->port; }
             std::string GetXMLLocation() const { return this->configXMLLocation; }
             std::string GetVerificationCode() const { return this->verificationCode; }
-            int GetDetectedServicesCount() const { return this->services.size(); }
+            uint GetDetectedServicesCount() const { return this->services.size(); }
             std::string GetServiceName(int serviceNumber) const;
             uint GetServiceActionsCount(int serviceNumber) const;
 
@@ -69,9 +57,9 @@ namespace setTopBox
             void SetManufacturer(std::string manufacturer) { this->manufacturer = manufacturer; }    
             void SetSerialNumber(std::string snumber) { this->serialNumber = snumber; }
             void SetVerificationCode(std::string vcode) { this->verificationCode = vcode; }
-            void ParseServiceFromXML(std::string XMLservice);
-
-            std::string ExecuteServiceAction(std::string serviceName, std::string actionName, std::string argumentList);
+            
+            void ParseServiceFromXML(const std::string XMLservice);
+            std::string ExecuteServiceAction(const std::string serviceName, const std::string actionName, const std::string argumentList);
 
         private:
             struct Argument
@@ -79,7 +67,7 @@ namespace setTopBox
                 std::string name;
                 DirectionType directionType;
                 std::string relatedStateVariable;
-                ArgumentType type;
+                std::string type;
                 std::string defaultValue;
                 bool sendEvents;
                 std::vector<std::string> allowedValueList;
@@ -90,16 +78,17 @@ namespace setTopBox
                     std::string step;
                 } valueRange;
 
-                Argument(std::string name, DirectionType directionType, std::string relatedStateVariable, ArgumentType type, std::string defaultValue, 
-                            bool sendEvents, std::vector<std::string> allowedList, struct AllowedValueRange valueRange);
+                Argument(std::string name, DirectionType directionType, std::string relatedStateVariable, 
+                    std::string type, std::string defaultValue, bool sendEvents, 
+                    std::vector<std::string> allowedList, struct AllowedValueRange valueRange);
                 void ShowArgument() const;
                 std::string GetAdditionalInfo() const;
-                std::string GetTypeString() const;
                 std::string GetName() const { return this->name; }
+                std::string GetType() const { return this->type; }
                 std::string GetDefaultValue() const { return this->defaultValue; }
 
-                bool CorrectType(std::string argumentValue) const;
-                bool CorrectValue(std::string argumentValue) const;
+                bool CorrectType(const std::string argumentValue) const;
+                bool CorrectValue(const std::string argumentValue) const;
             };
 
             struct Action
@@ -113,15 +102,13 @@ namespace setTopBox
 
                 void ShowAction() const;
                 void AddArgument(Argument& argument);
-
-                void FillArgumentList(std::string XMLAction, stateMap& stateTable);
-                void ParseArgumentFromXML(std::string argumentXML, stateMap& stateTable);
-
-                bool Execute(std::string STBAddress, std::string STBPort, std::string  serviceControlURL, std::string serviceType);
-                std::string MakeSOAPRequestBody(std::string serviceType, std::string argumentList);
-                std::string MakeArgumentForSOAPBody();
+                void FillArgumentList(const std::string XMLAction, stateMap& stateTable);
+                void ParseArgumentFromXML(const std::string argumentXML, stateMap& stateTable);
                 
-                void ParseSOAPResponse(std::string SOAPResponse);
+                bool Execute(const std::string STBAddress, const std::string STBPort, const std::string  serviceControlURL, const std::string serviceType);
+                std::string MakeSOAPRequestBody(const std::string serviceType, const std::string argumentList);
+                std::string MakeArgumentForSOAPBody();               
+                void ParseSOAPResponse(const std::string SOAPResponse);
             };
 
             struct Service{
@@ -140,13 +127,13 @@ namespace setTopBox
                 size_t GetActionCount() const { return this->actions.size(); }
     
                 void ShowMyActions() const;
-                bool GetServiceDescription(std::string STBAddress, std::string STBPort);
+                bool RequireServiceDescription(const std::string STBAddress, const std::string STBPort);
 
-                void FillActionList(std::string XMLServiceResponse);
-                std::unique_ptr<stateMap> GetStateMap(std::string XMLStateTable);
-                void ParseActionFromXML(std::string serviceXML, stateMap& stateTable);
+                void FillActionList(const std::string XMLServiceResponse);
+                std::unique_ptr<stateMap> GetStateMap(const std::string XMLStateTable);
+                void ParseActionFromXML(const std::string serviceXML, stateMap& stateTable);
 
-                bool ExecuteAction(std::string STBAddress, std::string STBPort, uint actionNum);
+                bool ExecuteAction(const std::string STBAddress, const std::string STBPort, uint actionNum);
             };
         
             std::string friendlyName;

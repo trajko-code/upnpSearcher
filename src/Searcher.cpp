@@ -54,7 +54,7 @@ uint16_t Searcher::SearchBcast(const std::string delay, const std::string target
     }
 
     if(!this->discoveredSTB.empty())
-        std::remove_if(this->discoveredSTB.begin(), this->discoveredSTB.end(), [](std::shared_ptr<setTopBox::STB>& stb) { return !stb->GetDescription(); });
+        std::remove_if(this->discoveredSTB.begin(), this->discoveredSTB.end(), [](std::shared_ptr<setTopBox::STB>& stb) { return !stb->RequireDescription(); });
 
     return this->discoveredSTB.size();
 }

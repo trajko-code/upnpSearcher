@@ -21,7 +21,7 @@ namespace setTopBox
         this->paired = false;
     }
 
-    bool STB::GetDescription()
+    bool STB::RequireDescription()
     {
         std::string XMLResponse = HTTPCommunicator::GetXMLDescription(this->GetXMLLocation(), this->GetAddress(), this->GetPort());
 
@@ -95,7 +95,7 @@ namespace setTopBox
     void STB::ShowMyServices() const
     {
         int i = 1;
-        for(auto &service : this->services)
+        for(const auto &service : this->services)
         {
             InOut::Out("\t" + std::to_string(i++) + ". " + service.GetNameOfService() + " : " + service.GetVersionOfService() + '\n');
         }
@@ -104,7 +104,7 @@ namespace setTopBox
     void STB::ShowServiceActions(int serviceNumber) 
     {
         if(this->services[serviceNumber].GetActionCount() < 1)
-            this->services[serviceNumber].GetServiceDescription(this->GetAddress(), this->GetPort());
+            this->services[serviceNumber].RequireServiceDescription(this->GetAddress(), this->GetPort());
         
         this->services[serviceNumber].ShowMyActions();
     }
@@ -115,7 +115,7 @@ namespace setTopBox
             [&serviceName](const Service& s) { return !s.GetNameOfService().compare(serviceName); });
         
         if(service != this->services.end())
-            service->GetServiceDescription(this->GetAddress(), this->GetPort());
+            service->RequireServiceDescription(this->GetAddress(), this->GetPort());
     }
 
     bool STB::ExecuteServiceAction(uint serviceNumber, uint actionNumber)
@@ -135,7 +135,7 @@ namespace setTopBox
         }
 
         if(service->GetActionCount() < 1)
-            service->GetServiceDescription(this->GetAddress(), this->GetPort());
+            service->RequireServiceDescription(this->GetAddress(), this->GetPort());
 
         auto action = std::find_if(service->actions.begin(), service->actions.end(), 
             [actionName](Action& a) { return !a.GetName().compare(actionName); });
@@ -181,10 +181,8 @@ namespace setTopBox
             return false;
     
         std::string result = XMLParser::GetTagValue(SOAPResponse, "result");
-        if(result.compare("0") != 0)
-            return false;
-        
-        return true;
+
+        return !result.compare("0");
     }
 
     bool STB::SendPairingCheck(const std::string pin)
@@ -527,7 +525,7 @@ namespace setTopBox
 #pragma region Service
     std::string STB::Service::GetNameOfService() const
     {
-        size_t nameBegin = this->type.find(":service:") + 9;
+        size_t nameBegin = this->type.find(":service:") + std::string(":service:").length();
         size_t nameEnd = this->type.find(':', nameBegin);
         return this->type.substr(nameBegin, nameEnd - nameBegin);
     }
@@ -540,7 +538,7 @@ namespace setTopBox
 
     std::string STB::Service::GetServiceId() const
     {
-        size_t idBegin = this->id.find(":serviceId:") + 11;
+        size_t idBegin = this->id.find(":serviceId:") + std::string(":serviceId:").length();
         return this->id.substr(idBegin, this->id.length() - idBegin);
     }
 
@@ -554,7 +552,7 @@ namespace setTopBox
         }
     }
 
-    bool STB::Service::GetServiceDescription(const std::string STBAddress, const std::string STBPort)
+    bool STB::Service::RequireServiceDescription(const std::string STBAddress, const std::string STBPort)
     {
         std::string XMLResponse = HTTPCommunicator::GetXMLDescription(this->descriptionURL, STBAddress, STBPort);
 

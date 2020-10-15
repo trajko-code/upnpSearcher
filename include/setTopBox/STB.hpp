@@ -1,3 +1,5 @@
+#pragma once
+
 #include <string>
 #include <vector>
 #include <map>
@@ -17,7 +19,7 @@ namespace setTopBox
         public:
             STB(std::string uuid, std::string address, std::string port, std::string xmlLocation);
 
-            bool GetDescription();
+            bool RequireDescription();
             void ShowDescription() const;
             void ShowMyServices() const;
             void ShowServiceActions(int serviceNumber);
@@ -125,7 +127,7 @@ namespace setTopBox
                 size_t GetActionCount() const { return this->actions.size(); }
     
                 void ShowMyActions() const;
-                bool GetServiceDescription(const std::string STBAddress, const std::string STBPort);
+                bool RequireServiceDescription(const std::string STBAddress, const std::string STBPort);
 
                 void FillActionList(const std::string XMLServiceResponse);
                 std::unique_ptr<stateMap> GetStateMap(const std::string XMLStateTable);

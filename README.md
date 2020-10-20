@@ -13,11 +13,11 @@ Discover and comunicate with STBs on local network using UPnP protocol.
 *   Manually select service and action to send
 *   Show services, actions and action arguments
 
-## Platforms
+## Platform
 
 * Linux
 
-## Dependencies
+## Dependency
 
 [SocketLib](https://github.com/trajko-code/socketLib) is library for working with POSIX sockets.
 
@@ -41,21 +41,20 @@ namespace Config
 
 You can easily build application by running **run-build.sh** shell script with following command:
 ```shell
-    sh ./run-build.sh
+sh ./run-build.sh
 ```
 
 ## Example of use
 
 After starting the application the main manu is displayed: 
 
-|![screenshot](screenshots/mainMenu.png)|
-|-|-|
+![screenshot](screenshots/mainMenu.png)|
 
 After searching devices on local network (option 1), you can select one of descovered set-top box
 (option 3) and STB menu will be displayed.
 
-|![screenshot](screenshots/STBMenu.png)|
-|-|-|
+![screenshot](screenshots/STBMenu.png)|
+
 
 * **option 1** shows device description like uuid, friendly name, address, port, manufacturer...
 * **option 2** sends request for pairing with device and ask you to enter PIN that will be show on TV screen

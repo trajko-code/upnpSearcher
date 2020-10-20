@@ -48,12 +48,12 @@ sh ./run-build.sh
 
 After starting the application the main manu is displayed: 
 
-![screenshot](screenshots/mainMenu.png)|
+![screenshot](screenshots/mainMenu.png)
 
 After searching devices on local network (option 1), you can select one of descovered set-top box
 (option 3) and STB menu will be displayed.
 
-![screenshot](screenshots/STBMenu.png)|
+![screenshot](screenshots/STBMenu.png)
 
 
 * **option 1** shows device description like uuid, friendly name, address, port, manufacturer...

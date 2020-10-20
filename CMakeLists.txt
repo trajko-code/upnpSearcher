@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.18)
 
 project(upnpSearcher)
 
@@ -31,8 +31,22 @@ add_executable(mainUPnP main.cpp ${exe_include} ${exe_source})
 
 target_include_directories(mainUPnP PUBLIC include)
 
-include_directories(/home/syrmia/Desktop/socketLib/include)
-add_library(MySocket SHARED IMPORTED)
-set_target_properties(MySocket PROPERTIES IMPORTED_LOCATION /home/syrmia/Desktop/socketLib/build/libMySocket.so)
+set(MY_SOCKET_INCLUDE_PATH "${CMAKE_SOURCE_DIR}/lib/MySocket/include")
 
-target_link_libraries(mainUPnP MySocket)
+if(NOT EXISTS "${MY_SOCKET_INCLUDE_PATH}")
+	file(DOWNLOAD 
+		"https://github.com/trajko-code/socketLib/releases/download/v1.0.0/MySocket.tar.xz" 
+		"${CMAKE_SOURCE_DIR}/lib/MySocket.tar.xz"
+		TLS_VERIFY ON)
+		
+	file(ARCHIVE_EXTRACT INPUT "${CMAKE_SOURCE_DIR}/lib/MySocket.tar.xz"
+		DESTINATION "${CMAKE_SOURCE_DIR}/lib/MySocket")
+		
+	file(REMOVE_RECURSE "${CMAKE_SOURCE_DIR}/lib/MySocket.tar.xz")
+endif()
+
+set(MY_SOCKET_LIB_PATH "${CMAKE_SOURCE_DIR}/lib/MySocket/libMySocket.so")
+
+include_directories(${MY_SOCKET_INCLUDE_PATH})
+
+target_link_libraries(mainUPnP ${MY_SOCKET_LIB_PATH})

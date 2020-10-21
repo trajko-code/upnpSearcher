@@ -69,21 +69,19 @@ Following class diagram presents relations beetwen classes in this project.
 
 ![screenshot](screenshots/Diagrams/ClassDiagramRelations.png)
 
-**Searcher** is the main class that detects devices on the local network.
+**Searcher** is the basic class that detects devices on the local network. It is implemented as singleton class.
 
 ![screenshot](screenshots/Diagrams/SearcherClass.png)
 
 **HTTPCommunicator** and **XMLParser** are static classes that implement specific functions for HTTP comunication and parsing XML response.
 
-![screenshot](screenshots/Diagrams/XMLParserClass.png)      ![screenshot](screenshots/Diagrams/HTTPComunicatorClass.png)
+![screenshot](screenshots/Diagrams/HTTPCommunicatorClass.png)      ![screenshot](screenshots/Diagrams/XMLParserClass.png)
 
 Following class diagrams present classes inside **setTopBox** namespace that are abstract view of set-top box and its services and actions.
 
 ![screenshot](screenshots/Diagrams/STBClass.png)
 
-![screenshot](screenshots/Diagrams/ServiceStruct.png)
-
-![screenshot](screenshots/Diagrams/ActionStruct.png)
+![screenshot](screenshots/Diagrams/ServiceStruct.png)       ![screenshot](screenshots/Diagrams/ActionStruct.png)
 
 ![screenshot](screenshots/Diagrams/ArgumentStruct.png)
 

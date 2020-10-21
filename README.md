@@ -23,7 +23,7 @@ Discover and comunicate with STBs on local network using UPnP protocol.
 
 ## Build Requirements
 
-*  [CMake](https://cmake.org/) minimum version 3.18
+*  [CMake](https://cmake.org/) minimum version 3.9
 
 *  A C++11-standard-compliant compiler
 

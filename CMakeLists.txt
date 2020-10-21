@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.9)
 
 project(upnpSearcher)
 
@@ -38,9 +38,16 @@ if(NOT EXISTS "${MY_SOCKET_INCLUDE_PATH}")
 		"https://github.com/trajko-code/socketLib/releases/download/v1.0.0/MySocket.tar.xz" 
 		"${CMAKE_SOURCE_DIR}/lib/MySocket.tar.xz"
 		TLS_VERIFY ON)
-		
-	file(ARCHIVE_EXTRACT INPUT "${CMAKE_SOURCE_DIR}/lib/MySocket.tar.xz"
-		DESTINATION "${CMAKE_SOURCE_DIR}/lib/MySocket")
+
+	if(NOT EXISTS "${CMAKE_SOURCE_DIR}/lib/MySocket")
+		execute_process(
+			COMMAND mkdir MySocket
+			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
+	endif()
+
+	execute_process(
+		COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/lib/MySocket.tar.xz
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/lib/MySocket)
 		
 	file(REMOVE_RECURSE "${CMAKE_SOURCE_DIR}/lib/MySocket.tar.xz")
 endif()

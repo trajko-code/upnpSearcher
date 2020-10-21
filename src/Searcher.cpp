@@ -101,48 +101,48 @@ void Searcher::FilterDiscoveryResponse(const std::string response)
     this->TryToAddNewSTB(usn, location);
 }
 
-void Searcher::FilterMulticastMessage(const std::string response)
-{
-    if(response.find("NOTIFY *") == std::string::npos)
-        return;
+// void Searcher::FilterMulticastMessage(const std::string response)
+// {
+//     if(response.find("NOTIFY *") == std::string::npos)
+//         return;
     
-    std::string nts = HTTPCommunicator::GetHeaderValue(response, "NTS");
-    if(nts.empty())
-        return;
-    else if(nts.compare(ALIVE) != 0) //processing alive notify
-        return;                                             
-    else if(nts.compare(BYEBYE) != 0) //processing byebye notify
-        return;
-    else if(nts.compare(UPDATE) != 0) //processing update notify
-        return;  
+//     std::string nts = HTTPCommunicator::GetHeaderValue(response, "NTS");
+//     if(nts.empty())
+//         return;
+//     else if(nts.compare(ALIVE) != 0) //processing alive notify
+//         return;                                             
+//     else if(nts.compare(BYEBYE) != 0) //processing byebye notify
+//         return;
+//     else if(nts.compare(UPDATE) != 0) //processing update notify
+//         return;  
 
-    //Process ALIVE notify
-    // std::string location;
-    // if((location = GetHeaderValue(response, "LOCATION")).empty())
-    //     return;   
+//     //Process ALIVE notify
+//     // std::string location;
+//     // if((location = GetHeaderValue(response, "LOCATION")).empty())
+//     //     return;   
 
-    // std::string nt = GetHeaderValue(response, "NT");
-    // if(nt.empty())
-    //     return;
-    // // else if(nt.compare(ROOTDEVICE) != 0)
-    // //    return;
+//     // std::string nt = GetHeaderValue(response, "NT");
+//     // if(nt.empty())
+//     //     return;
+//     // // else if(nt.compare(ROOTDEVICE) != 0)
+//     // //    return;
     
-    // std::string usn = GetHeaderValue(response, "USN");
-    // if(usn.empty())
-    //     return;
+//     // std::string usn = GetHeaderValue(response, "USN");
+//     // if(usn.empty())
+//     //     return;
 
-    // std::string uuid = usn.substr(5, 36);  
-    // for(auto const &stb : this->discoveredSTB)
-    //     if(stb->GetUUID().compare(uuid) == 0)
-    //         return;
+//     // std::string uuid = usn.substr(5, 36);  
+//     // for(auto const &stb : this->discoveredSTB)
+//     //     if(stb->GetUUID().compare(uuid) == 0)
+//     //         return;
 
-    // std::unique_ptr<STB> newSTB = this->CreateNewSTB(uuid, location);
-    // if(SearchSTBDescription(*newSTB))
-    // {
-    //     this->discoveredSTB.push_back(std::move(newSTB));
-    //     std::cout<<"New STB detected on network!"<<'\n';
-    // }
-}
+//     // std::unique_ptr<STB> newSTB = this->CreateNewSTB(uuid, location);
+//     // if(SearchSTBDescription(*newSTB))
+//     // {
+//     //     this->discoveredSTB.push_back(std::move(newSTB));
+//     //     std::cout<<"New STB detected on network!"<<'\n';
+//     // }
+// }
 
 void Searcher::TryToAddNewSTB(const std::string usn, const std::string location)
 {

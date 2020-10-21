@@ -48,12 +48,12 @@ sh ./run-build.sh
 
 After starting the application the main manu is displayed: 
 
-![screenshot](screenshots/mainMenu.png)
+![screenshot](screenshots/Menu/mainMenu.png)
 
 After searching devices on local network (option 1), you can select one of descovered set-top box
 (option 3) and STB menu will be displayed.
 
-![screenshot](screenshots/STBMenu.png)
+![screenshot](screenshots/Menu/STBMenu.png)
 
 
 * **option 1** shows device description like uuid, friendly name, address, port, manufacturer...
@@ -62,3 +62,28 @@ After searching devices on local network (option 1), you can select one of desco
 * **option 4** change device friendly name 
 * **option 5** lists key codes and ask you to enter key code for remote controler
 * **option 6** allows user to manually select service and service action that will be send to device 
+
+## Class diagram
+
+Following class diagram presents relations beetwen classes in this project.
+
+![screenshot](screenshots/Diagrams/ClassDiagramRelations.png)
+
+**Searcher** is the main class that detects devices on the local network.
+
+![screenshot](screenshots/Diagrams/SearcherClass.png)
+
+**HTTPCommunicator** and **XMLParser** are static classes that implement specific functions for HTTP comunication and parsing XML response.
+
+![screenshot](screenshots/Diagrams/XMLParserClass.png)      ![screenshot](screenshots/Diagrams/HTTPComunicatorClass.png)
+
+Following class diagrams present classes inside **setTopBox** namespace that are abstract view of set-top box and its services and actions.
+
+![screenshot](screenshots/Diagrams/STBClass.png)
+
+![screenshot](screenshots/Diagrams/ServiceStruct.png)
+
+![screenshot](screenshots/Diagrams/ActionStruct.png)
+
+![screenshot](screenshots/Diagrams/ArgumentStruct.png)
+

@@ -71,6 +71,6 @@ namespace setTopBox
 
             void ParseServiceFromXML(const std::string XMLservice);
             std::string ExecuteServiceAction(const std::string serviceName, 
-            const std::string actionName, const std::string argumentList);
+                const std::string actionName, const std::string argumentList);
     };
 }

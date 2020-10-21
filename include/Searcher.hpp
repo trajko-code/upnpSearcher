@@ -37,7 +37,7 @@ class Searcher
         Searcher& operator=(const Searcher&) = delete;
 
         void FilterDiscoveryResponse(const std::string response);
-        void FilterMulticastMessage(const std::string response);
+        //void FilterMulticastMessage(const std::string response);
 
         void TryToAddNewSTB(const std::string usn, const std::string location);
 };

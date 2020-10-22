@@ -67,21 +67,31 @@ After searching devices on local network (option 1), you can select one of desco
 
 Following class diagram presents relations beetwen classes in this project.
 
-![screenshot](screenshots/Diagrams/ClassDiagramRelations.png)
+![screenshot](screenshots/Diagrams/ClassDiagram/ClassDiagramRelations.png)
 
 **Searcher** is the basic class that detects devices on the local network. It is implemented as singleton class.
 
-![screenshot](screenshots/Diagrams/SearcherClass.png)
+![screenshot](screenshots/Diagrams/ClassDiagram/SearcherClass.png)
 
 **HTTPCommunicator** and **XMLParser** are static classes that implement specific functions for HTTP comunication and parsing XML response.
 
-![screenshot](screenshots/Diagrams/HTTPCommunicatorClass.png)      ![screenshot](screenshots/Diagrams/XMLParserClass.png)
+![screenshot](screenshots/Diagrams/ClassDiagram/HTTPCommunicatorClass.png)      ![screenshot](screenshots/Diagrams/ClassDiagram/XMLParserClass.png)
 
 Following class diagrams present classes inside **setTopBox** namespace that are abstract view of set-top box and its services and actions.
 
-![screenshot](screenshots/Diagrams/STBClass.png)
+![screenshot](screenshots/Diagrams/ClassDiagram/STBClass.png)
 
-![screenshot](screenshots/Diagrams/ServiceStruct.png)       ![screenshot](screenshots/Diagrams/ActionStruct.png)
+![screenshot](screenshots/Diagrams/ClassDiagram/ServiceStruct.png)       ![screenshot](screenshots/Diagrams/ClassDiagram/ActionStruct.png)
 
-![screenshot](screenshots/Diagrams/ArgumentStruct.png)
+![screenshot](screenshots/Diagrams/ClassDiagram/ArgumentStruct.png)
+
+## Sequence diagram
+
+Following sequence diagram shows order of action during pairing with new device.
+
+![screenshot](screenshots/Diagrams/SequenceDiagram/SDPairToNewDevice.png)
+
+Following sequence diagram shows order of action during sending remote key command to device that execute required action.
+
+![screenshot](screenshots/Diagrams/SequenceDiagram/SDSendRemoteKeyCommand.png)
 
